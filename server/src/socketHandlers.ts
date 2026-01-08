@@ -22,6 +22,9 @@ import {
   getRoomBySocketId,
   calculateMatchupScores,
   getLeaderboard,
+  getRoundWinner,
+  transitionToResults,
+  startNextRound,
 } from './roomManager.js';
 import { generateImage } from './flux.js';
 import type { Player, Room, CategorySelection, GamePhase } from './types.js';
@@ -223,11 +226,24 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
         const advanceResult = advanceMatchup(room.code);
 
-        if (advanceResult.isComplete) {
-          // All matchups complete - transition to results phase (US-012)
-          io.to(room.code).emit('voting-complete', {
-            gameState: advanceResult.room ? gameStateToResponse(advanceResult.room) : null,
-            leaderboard: advanceResult.room ? getLeaderboard(advanceResult.room) : [],
+        if (advanceResult.isComplete && advanceResult.room) {
+          // Transition to results phase
+          transitionToResults(advanceResult.room.code);
+          const roundWinner = getRoundWinner(advanceResult.room);
+
+          io.to(room.code).emit('round-results', {
+            gameState: gameStateToResponse(advanceResult.room),
+            leaderboard: getLeaderboard(advanceResult.room),
+            roundWinner: roundWinner ? {
+              playerId: roundWinner.playerId,
+              playerName: roundWinner.playerName,
+              prompt: roundWinner.prompt,
+              imageBase64: roundWinner.imageBase64,
+              votesReceived: roundWinner.totalVotesReceived,
+            } : null,
+            theme: advanceResult.room.gameState.currentRound?.themeText ?? '',
+            roundNumber: advanceResult.room.gameState.round,
+            totalRounds: advanceResult.room.gameState.totalRounds,
           });
         } else if (advanceResult.nextMatchup) {
           // Emit next matchup
@@ -278,10 +294,24 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
       const advanceResult = advanceMatchup(room.code);
 
-      if (advanceResult.isComplete) {
-        io.to(room.code).emit('voting-complete', {
-          gameState: advanceResult.room ? gameStateToResponse(advanceResult.room) : null,
-          leaderboard: advanceResult.room ? getLeaderboard(advanceResult.room) : [],
+      if (advanceResult.isComplete && advanceResult.room) {
+        // Transition to results phase
+        transitionToResults(advanceResult.room.code);
+        const roundWinner = getRoundWinner(advanceResult.room);
+
+        io.to(room.code).emit('round-results', {
+          gameState: gameStateToResponse(advanceResult.room),
+          leaderboard: getLeaderboard(advanceResult.room),
+          roundWinner: roundWinner ? {
+            playerId: roundWinner.playerId,
+            playerName: roundWinner.playerName,
+            prompt: roundWinner.prompt,
+            imageBase64: roundWinner.imageBase64,
+            votesReceived: roundWinner.totalVotesReceived,
+          } : null,
+          theme: advanceResult.room.gameState.currentRound?.themeText ?? '',
+          roundNumber: advanceResult.room.gameState.round,
+          totalRounds: advanceResult.room.gameState.totalRounds,
         });
       } else if (advanceResult.nextMatchup) {
         const player1Name = getPlayerName(room, advanceResult.nextMatchup.player1Id);
@@ -293,6 +323,44 @@ export function setupSocketHandlers(io: SocketIOServer): void {
             player1Name,
             player2Name,
           },
+        });
+      }
+
+      callback({ success: true });
+    });
+
+    // Next round (host only)
+    socket.on('next-round', (callback: (response: { success: boolean; error?: string }) => void) => {
+      const room = getRoomBySocketId(socket.id);
+      if (!room) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      // Only host can start next round
+      const player = room.players.get(socket.id);
+      if (!player?.isHost) {
+        callback({ success: false, error: 'Only host can start next round' });
+        return;
+      }
+
+      const result = startNextRound(room.code);
+
+      if (!result.success || !result.room) {
+        callback({ success: false, error: result.error });
+        return;
+      }
+
+      if (result.isFinal) {
+        // Final results
+        io.to(room.code).emit('final-results', {
+          gameState: gameStateToResponse(result.room),
+          leaderboard: getLeaderboard(result.room),
+        });
+      } else {
+        // Next round started
+        io.to(room.code).emit('game-started', {
+          gameState: gameStateToResponse(result.room),
         });
       }
 

@@ -746,3 +746,115 @@ export function getLeaderboard(room: Room): LeaderboardEntry[] {
 
   return entries;
 }
+
+export interface RoundWinnerData {
+  playerId: string;
+  playerName: string;
+  prompt: string;
+  imageBase64: string | null;
+  totalVotesReceived: number;
+}
+
+export function getRoundWinner(room: Room): RoundWinnerData | null {
+  if (!room.gameState.currentRound) return null;
+
+  // Count total votes received by each player across all matchups
+  const votesByPlayer = new Map<string, number>();
+
+  for (const matchup of room.gameState.currentRound.matchups) {
+    for (const vote of matchup.votes) {
+      const current = votesByPlayer.get(vote.votedForPlayerId) ?? 0;
+      votesByPlayer.set(vote.votedForPlayerId, current + 1);
+    }
+  }
+
+  // Find player with most votes
+  let winnerId: string | null = null;
+  let maxVotes = 0;
+
+  for (const [playerId, votes] of votesByPlayer.entries()) {
+    if (votes > maxVotes) {
+      maxVotes = votes;
+      winnerId = playerId;
+    }
+  }
+
+  if (!winnerId) return null;
+
+  const prompt = room.gameState.currentRound.prompts.get(winnerId);
+  const image = room.gameState.currentRound.generatedImages.get(winnerId);
+
+  return {
+    playerId: winnerId,
+    playerName: getPlayerName(room, winnerId),
+    prompt: prompt?.prompt ?? '',
+    imageBase64: image?.imageBase64 ?? null,
+    totalVotesReceived: maxVotes,
+  };
+}
+
+export function transitionToResults(roomCode: string): { success: boolean; room?: Room } {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) {
+    return { success: false };
+  }
+
+  room.gameState.phase = 'results';
+  return { success: true, room };
+}
+
+export interface StartNextRoundResult {
+  success: boolean;
+  error?: string;
+  room?: Room;
+  isFinal?: boolean;
+}
+
+export function startNextRound(roomCode: string): StartNextRoundResult {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  if (room.gameState.phase !== 'results') {
+    return { success: false, error: 'Not in results phase' };
+  }
+
+  // Check if this was the final round
+  if (room.gameState.round >= room.gameState.totalRounds) {
+    room.gameState.phase = 'final';
+    return { success: true, room, isFinal: true };
+  }
+
+  // Advance to next round
+  room.gameState.round += 1;
+
+  // Select a new theme
+  const theme = getRandomTheme(room.gameState.category, room.gameState.usedThemeIds);
+  if (!theme) {
+    return { success: false, error: 'No themes available' };
+  }
+
+  // Mark theme as used
+  room.gameState.usedThemeIds.add(theme.id);
+
+  // Start new prompting phase
+  const now = new Date();
+  const endTime = new Date(now.getTime() + PROMPTING_DURATION_MS);
+
+  const roundState: RoundState = {
+    themeId: theme.id,
+    themeText: theme.text,
+    prompts: new Map(),
+    generatedImages: new Map(),
+    matchups: [],
+    currentMatchupIndex: 0,
+    phaseStartTime: now,
+    phaseEndTime: endTime,
+  };
+
+  room.gameState.phase = 'prompting';
+  room.gameState.currentRound = roundState;
+
+  return { success: true, room, isFinal: false };
+}

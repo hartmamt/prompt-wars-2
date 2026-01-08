@@ -6,6 +6,7 @@ import { Lobby } from './components/Lobby';
 import { Prompting } from './components/Prompting';
 import { Generating } from './components/Generating';
 import { Voting } from './components/Voting';
+import { Results } from './components/Results';
 import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
 
 interface RoomResponse {
@@ -85,6 +86,23 @@ interface MatchupResultEvent {
   leaderboard: LeaderboardEntry[];
 }
 
+interface RoundWinner {
+  playerId: string;
+  playerName: string;
+  prompt: string;
+  imageBase64: string | null;
+  votesReceived: number;
+}
+
+interface RoundResultsEvent {
+  gameState: GameState;
+  leaderboard: LeaderboardEntry[];
+  roundWinner: RoundWinner | null;
+  theme: string;
+  roundNumber: number;
+  totalRounds: number;
+}
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
@@ -102,6 +120,10 @@ function App() {
   const [hasVoted, setHasVoted] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [recentScoreChanges, setRecentScoreChanges] = useState<ScoreChange[]>([]);
+  const [roundWinner, setRoundWinner] = useState<RoundWinner | null>(null);
+  const [resultsTheme, setResultsTheme] = useState('');
+  const [resultsRoundNumber, setResultsRoundNumber] = useState(1);
+  const [resultsTotalRounds, setResultsTotalRounds] = useState(3);
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -229,7 +251,15 @@ function App() {
         setGameState(data.gameState);
       }
       setLeaderboard(data.leaderboard);
-      // Phase will transition to results in US-012
+    };
+
+    const onRoundResults = (data: RoundResultsEvent) => {
+      setGameState(data.gameState);
+      setLeaderboard(data.leaderboard);
+      setRoundWinner(data.roundWinner);
+      setResultsTheme(data.theme);
+      setResultsRoundNumber(data.roundNumber);
+      setResultsTotalRounds(data.totalRounds);
       setPhase('results');
     };
 
@@ -248,6 +278,7 @@ function App() {
     socket.on('next-matchup', onNextMatchup);
     socket.on('matchup-result', onMatchupResult);
     socket.on('voting-complete', onVotingComplete);
+    socket.on('round-results', onRoundResults);
 
     // Check if already connected
     if (socket.connected) {
@@ -270,6 +301,7 @@ function App() {
       socket.off('next-matchup', onNextMatchup);
       socket.off('matchup-result', onMatchupResult);
       socket.off('voting-complete', onVotingComplete);
+      socket.off('round-results', onRoundResults);
     };
   }, [currentPlayerId]);
 
@@ -347,6 +379,17 @@ function App() {
     });
   }, []);
 
+  const handleNextRound = useCallback(() => {
+    socket.emit('next-round', (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error ?? 'Failed to continue');
+      }
+      // Reset state for next round
+      setHasSubmittedPrompt(false);
+      setRoundWinner(null);
+    });
+  }, []);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-prompt-black">
@@ -397,6 +440,24 @@ function App() {
         onCastVote={handleCastVote}
         leaderboard={leaderboard}
         recentScoreChanges={recentScoreChanges}
+      />
+    );
+  }
+
+  // Results phase
+  if (phase === 'results' && room) {
+    const isHost = room.players.find((p) => p.id === currentPlayerId)?.isHost ?? false;
+
+    return (
+      <Results
+        theme={resultsTheme}
+        roundNumber={resultsRoundNumber}
+        totalRounds={resultsTotalRounds}
+        roundWinner={roundWinner}
+        leaderboard={leaderboard}
+        currentPlayerId={currentPlayerId}
+        onContinue={handleNextRound}
+        isHost={isHost}
       />
     );
   }
