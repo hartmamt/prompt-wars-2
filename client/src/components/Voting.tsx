@@ -121,7 +121,7 @@ export function Voting({
               />
             ) : (
               <div className="flex h-full min-h-64 items-center justify-center bg-gray-900 text-gray-500">
-                Image failed to generate
+                THE MACHINE SPIRIT REJECTED THIS ONE
               </div>
             )}
 
@@ -179,7 +179,7 @@ export function Voting({
               />
             ) : (
               <div className="flex h-full min-h-64 items-center justify-center bg-gray-900 text-gray-500">
-                Image failed to generate
+                THE MACHINE SPIRIT REJECTED THIS ONE
               </div>
             )}
 
@@ -218,7 +218,7 @@ export function Voting({
       {isInMatchup && (
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-500">
-            You cannot vote on your own matchup
+            SPECTATE MODE: Your fate is in the hands of the council
           </p>
         </div>
       )}
