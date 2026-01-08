@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { playClick, playHover, playSuccess } from '../sounds';
 
 interface PromptingProps {
   theme: string;
@@ -45,6 +46,8 @@ export function Prompting({
 
   const handleSubmit = useCallback(() => {
     if (prompt.trim() && !hasSubmitted) {
+      void playClick();
+      playSuccess();
       onSubmitPrompt(prompt.trim());
     }
   }, [prompt, hasSubmitted, onSubmitPrompt]);
@@ -105,6 +108,7 @@ export function Prompting({
 
           <button
             onClick={handleSubmit}
+            onMouseEnter={() => void playHover()}
             disabled={!prompt.trim()}
             className={`mt-4 w-full rounded-lg px-6 py-4 text-lg font-bold transition-all ${
               prompt.trim()

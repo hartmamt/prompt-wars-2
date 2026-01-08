@@ -530,3 +530,33 @@
   - Singleton pattern works well for audio engine (one context per page)
   - webkitAudioContext needed for Safari compatibility
 ---
+
+## 2026-01-08 - US-023
+- What was implemented:
+  - sounds.ts module with procedural UI sound effects
+  - playHover(): quick high-frequency blip (2000Hz, 50ms, sine wave)
+  - playClick(): punchy mid-frequency pop (600Hz, 100ms, square wave with lowpass filter)
+  - playNavigate(): synthetic whoosh sweep (sawtooth 300→1500Hz with filter sweep)
+  - playError(): crunchy distorted buzz (150Hz, waveshaper distortion)
+  - playSuccess(): ascending two-tone chime (C5→G5, sine waves)
+  - Integrated sounds into Home.tsx (all buttons, mode changes, error display)
+  - Integrated sounds into Lobby.tsx (start game, ready toggle, leave buttons)
+  - Integrated sounds into Prompting.tsx (submit button with success chime)
+  - Integrated sounds into Voting.tsx (vote buttons with success chime)
+  - Integrated sounds into Results.tsx (continue button with navigate sound)
+  - Integrated sounds into FinalResults.tsx (play again, return home buttons)
+- Files changed:
+  - client/src/sounds.ts (new file - procedural sound effects)
+  - client/src/components/Home.tsx (sounds on buttons and error)
+  - client/src/components/Lobby.tsx (sounds on action buttons)
+  - client/src/components/Prompting.tsx (sounds on submit)
+  - client/src/components/Voting.tsx (sounds on vote buttons)
+  - client/src/components/Results.tsx (sounds on continue)
+  - client/src/components/FinalResults.tsx (sounds on actions)
+- **Learnings for future iterations:**
+  - Direct Web Audio API access needed for complex sounds (frequency sweeps, distortion)
+  - Access context via: (audioEngine as unknown as { context: AudioContext | null }).context
+  - OscillatorNode frequency.exponentialRampToValueAtTime for sweep effects
+  - WaveShaper for distortion using tanh curve
+  - Use void for async calls in event handlers: onClick={() => void playClick()}
+---

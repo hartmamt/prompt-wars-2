@@ -357,7 +357,7 @@
         "Success: ascending two-tone chime"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Basic interaction feedback"
     },
     {

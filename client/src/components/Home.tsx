@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { playClick, playHover, playNavigate, playError } from '../sounds';
 
 interface HomeProps {
   connected: boolean;
@@ -11,17 +12,34 @@ export function Home({ connected, onCreateRoom, onJoinRoom, error }: HomeProps) 
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu');
+  const prevError = useRef<string | null>(null);
+
+  // Play error sound when error appears
+  useEffect(() => {
+    if (error && error !== prevError.current) {
+      playError();
+    }
+    prevError.current = error;
+  }, [error]);
 
   const handleCreate = () => {
     if (playerName.trim()) {
+      void playClick();
       onCreateRoom(playerName.trim());
     }
   };
 
   const handleJoin = () => {
     if (playerName.trim() && roomCode.trim()) {
+      void playClick();
       onJoinRoom(roomCode.trim().toUpperCase(), playerName.trim());
     }
+  };
+
+  const handleModeChange = (newMode: 'menu' | 'create' | 'join') => {
+    void playClick();
+    playNavigate();
+    setMode(newMode);
   };
 
   if (mode === 'menu') {
@@ -49,14 +67,16 @@ export function Home({ connected, onCreateRoom, onJoinRoom, error }: HomeProps) 
 
         <div className="w-full max-w-md space-y-4 px-4">
           <button
-            onClick={() => setMode('create')}
+            onClick={() => handleModeChange('create')}
+            onMouseEnter={() => void playHover()}
             disabled={!connected}
             className="w-full rounded-lg bg-prompt-purple px-6 py-4 text-lg font-bold text-white transition-all hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             ⚔️ START NEW BATTLE ⚔️
           </button>
           <button
-            onClick={() => setMode('join')}
+            onClick={() => handleModeChange('join')}
+            onMouseEnter={() => void playHover()}
             disabled={!connected}
             className="w-full rounded-lg border-2 border-prompt-pink bg-transparent px-6 py-4 text-lg font-bold text-prompt-pink transition-all hover:bg-prompt-pink hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -112,6 +132,7 @@ export function Home({ connected, onCreateRoom, onJoinRoom, error }: HomeProps) 
 
         <button
           onClick={mode === 'create' ? handleCreate : handleJoin}
+          onMouseEnter={() => void playHover()}
           disabled={!playerName.trim() || (mode === 'join' && roomCode.length !== 4)}
           className="w-full rounded-lg bg-prompt-purple px-6 py-4 text-lg font-bold text-white transition-all hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -119,7 +140,8 @@ export function Home({ connected, onCreateRoom, onJoinRoom, error }: HomeProps) 
         </button>
 
         <button
-          onClick={() => setMode('menu')}
+          onClick={() => handleModeChange('menu')}
+          onMouseEnter={() => void playHover()}
           className="w-full rounded-lg border-2 border-gray-700 bg-transparent px-6 py-3 font-bold text-gray-400 transition-all hover:border-gray-500 hover:text-gray-300"
         >
           ← RETREAT

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { LeaderboardEntry, MatchupData, ScoreChange } from '../types';
+import { playClick, playHover, playSuccess } from '../sounds';
 
 interface VotingProps {
   matchup: MatchupData;
@@ -50,6 +51,8 @@ export function Voting({
     if (hasVoted || selectedVote) return;
     if (playerId === currentPlayerId) return;
 
+    void playClick();
+    playSuccess();
     setSelectedVote(playerId);
     onCastVote(playerId);
   }, [hasVoted, selectedVote, currentPlayerId, onCastVote]);
@@ -144,6 +147,7 @@ export function Voting({
           {/* Vote button for player 1 */}
           <button
             onClick={() => handleVote(matchup.player1Id)}
+            onMouseEnter={() => void playHover()}
             disabled={hasVoted || isInMatchup || !matchup.player1Image}
             className={`mt-2 w-full rounded-lg px-4 py-3 text-lg font-bold transition-all ${
               hasVoted || isInMatchup || !matchup.player1Image
@@ -202,6 +206,7 @@ export function Voting({
           {/* Vote button for player 2 */}
           <button
             onClick={() => handleVote(matchup.player2Id)}
+            onMouseEnter={() => void playHover()}
             disabled={hasVoted || isInMatchup || !matchup.player2Image}
             className={`mt-2 w-full rounded-lg px-4 py-3 text-lg font-bold transition-all ${
               hasVoted || isInMatchup || !matchup.player2Image

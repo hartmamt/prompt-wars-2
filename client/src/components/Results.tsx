@@ -1,4 +1,5 @@
 import type { LeaderboardEntry } from '../types';
+import { playClick, playHover, playNavigate } from '../sounds';
 
 interface RoundWinner {
   playerId: string;
@@ -168,7 +169,8 @@ export function Results({
       <div className="w-full max-w-md md:max-w-lg">
         {isHost ? (
           <button
-            onClick={onContinue}
+            onClick={() => { void playClick(); playNavigate(); onContinue(); }}
+            onMouseEnter={() => void playHover()}
             className="terminal-btn w-full rounded-lg bg-prompt-purple px-6 py-4 text-lg font-bold text-white transition-all hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 md:py-5 md:text-xl"
           >
             {roundNumber < totalRounds

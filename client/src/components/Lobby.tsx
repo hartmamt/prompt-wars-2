@@ -1,6 +1,7 @@
 import type { RoomState, Player, CategorySelection } from '../types';
 import { CATEGORY_OPTIONS } from '../types';
 import { AvatarSelector } from './AvatarSelector';
+import { playClick, playHover } from '../sounds';
 
 interface LobbyProps {
   room: RoomState;
@@ -151,7 +152,8 @@ export function Lobby({
       <div className="w-full max-w-md space-y-3 md:max-w-lg">
         {isHost ? (
           <button
-            onClick={onStartGame}
+            onClick={() => { void playClick(); onStartGame(); }}
+            onMouseEnter={() => void playHover()}
             disabled={!room.canStart}
             className={`terminal-btn w-full rounded-lg px-6 py-4 text-lg font-bold transition-all md:py-5 md:text-xl ${
               room.canStart
@@ -169,7 +171,8 @@ export function Lobby({
               </div>
             </div>
             <button
-              onClick={onToggleReady}
+              onClick={() => { void playClick(); onToggleReady(); }}
+              onMouseEnter={() => void playHover()}
               className={`w-full rounded-lg px-6 py-3 font-bold transition-all md:py-4 md:text-lg ${
                 isReady
                   ? 'border-2 border-prompt-green bg-transparent text-prompt-green hover:bg-prompt-green hover:text-white'
@@ -182,7 +185,8 @@ export function Lobby({
         )}
 
         <button
-          onClick={onLeaveRoom}
+          onClick={() => { void playClick(); onLeaveRoom(); }}
+          onMouseEnter={() => void playHover()}
           className="w-full rounded-lg border-2 border-gray-700 bg-transparent px-6 py-3 font-bold text-gray-400 transition-all hover:border-red-500 hover:text-red-500 md:py-4 md:text-lg"
         >
           ABANDON MISSION

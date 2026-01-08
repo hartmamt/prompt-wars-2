@@ -1,4 +1,5 @@
 import type { LeaderboardEntry } from '../types';
+import { playClick, playHover, playNavigate } from '../sounds';
 
 interface FinalResultsProps {
   leaderboard: LeaderboardEntry[];
@@ -158,13 +159,15 @@ export function FinalResults({
         {isHost ? (
           <>
             <button
-              onClick={onPlayAgain}
+              onClick={() => { void playClick(); playNavigate(); onPlayAgain(); }}
+              onMouseEnter={() => void playHover()}
               className="w-full rounded-lg bg-prompt-purple px-6 py-4 text-lg font-bold text-white transition-all hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 md:py-5 md:text-xl"
             >
               ⚔️ PLAY AGAIN ⚔️
             </button>
             <button
-              onClick={onReturnHome}
+              onClick={() => { void playClick(); playNavigate(); onReturnHome(); }}
+              onMouseEnter={() => void playHover()}
               className="w-full rounded-lg border-2 border-gray-600 bg-transparent px-6 py-3 font-semibold text-gray-400 transition-all hover:border-gray-500 hover:text-gray-300 md:py-4 md:text-lg"
             >
               Return to Home
