@@ -511,7 +511,7 @@
         "Warning if more than 3 avatars mentioned"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Requires Nano Banana provider"
     },
     {

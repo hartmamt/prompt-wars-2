@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { playClick, playHover, playCountdownTick, playThemeReveal, playPromptSubmit } from '../sounds';
-import type { Player } from '../types';
+import type { Player, ModelProvider } from '../types';
 
 type SabotageType = 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box';
 
@@ -39,6 +39,7 @@ interface PromptingProps {
   incomingSabotage: { attackerName: string; sabotageType?: SabotageType } | null;
   armedSabotages?: SabotageTarget[]; // Sabotages currently targeting other players
   sabotagesAgainstMe?: number; // Number of sabotages against current player this round
+  modelProvider?: ModelProvider; // For enabling @mentions with Nano Banana
 }
 
 const PROMPT_MAX_LENGTH = 200;
@@ -57,6 +58,7 @@ export function Prompting({
   incomingSabotage,
   armedSabotages = [],
   sabotagesAgainstMe = 0,
+  modelProvider = 'flux-schnell',
 }: PromptingProps) {
   const [prompt, setPrompt] = useState('');
   const [timeLeft, setTimeLeft] = useState(90);
@@ -68,6 +70,37 @@ export function Prompting({
   const [showFlash, setShowFlash] = useState(false);
   const [tokenAnimation, setTokenAnimation] = useState<{ amount: number; type: 'earn' | 'spend' } | null>(null);
   const prevTokensRef = useRef(currentPlayerTokens);
+
+  // @Mention autocomplete state
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearchText, setMentionSearchText] = useState('');
+  const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionsEnabled = modelProvider === 'nano-banana';
+
+  // Parse mentioned players from prompt
+  const mentionedPlayers = useMemo(() => {
+    const mentionRegex = /@(\w+)/g;
+    const mentions: Player[] = [];
+    let match;
+    while ((match = mentionRegex.exec(prompt)) !== null) {
+      const name = match[1];
+      const player = players.find(p => p.name.toLowerCase() === name?.toLowerCase());
+      if (player && !mentions.find(m => m.id === player.id)) {
+        mentions.push(player);
+      }
+    }
+    return mentions;
+  }, [prompt, players]);
+
+  // Filter players for autocomplete based on search text
+  const filteredPlayers = useMemo(() => {
+    if (!mentionSearchText) return players.filter(p => p.id !== currentPlayerId);
+    return players.filter(p =>
+      p.id !== currentPlayerId &&
+      p.name.toLowerCase().includes(mentionSearchText.toLowerCase())
+    );
+  }, [players, currentPlayerId, mentionSearchText]);
 
   // Play theme reveal sound on mount
   useEffect(() => {
@@ -149,6 +182,65 @@ export function Prompting({
       setShowSabotagePanel(false);
     }
   }, [selectedVictimId, canAffordSelected, selectedSabotageType, onUseSabotage]);
+
+  // Handle textarea input change with @ detection
+  const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value.slice(0, PROMPT_MAX_LENGTH);
+    const cursorPos = e.target.selectionStart ?? 0;
+    setPrompt(newValue);
+
+    if (mentionsEnabled) {
+      // Find if we're in a @ mention context
+      const textBeforeCursor = newValue.slice(0, cursorPos);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+      if (lastAtIndex !== -1) {
+        // Check if there's a space or start of string before @
+        const charBeforeAt = textBeforeCursor[lastAtIndex - 1];
+        if (lastAtIndex === 0 || charBeforeAt === ' ' || charBeforeAt === '\n') {
+          const searchText = textBeforeCursor.slice(lastAtIndex + 1);
+          // Only show dropdown if no space after @
+          if (!searchText.includes(' ')) {
+            setMentionSearchText(searchText);
+            setMentionCursorPosition(lastAtIndex);
+            setShowMentionDropdown(true);
+            return;
+          }
+        }
+      }
+      setShowMentionDropdown(false);
+    }
+  }, [mentionsEnabled]);
+
+  // Insert selected player mention
+  const handleSelectMention = useCallback((player: Player) => {
+    void playClick();
+    const beforeMention = prompt.slice(0, mentionCursorPosition);
+    const afterSearch = prompt.slice(mentionCursorPosition + 1 + mentionSearchText.length);
+    const newPrompt = `${beforeMention}@${player.name}${afterSearch}`;
+    setPrompt(newPrompt.slice(0, PROMPT_MAX_LENGTH));
+    setShowMentionDropdown(false);
+    setMentionSearchText('');
+
+    // Focus back on textarea
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      const newCursorPos = beforeMention.length + player.name.length + 1;
+      textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  }, [prompt, mentionCursorPosition, mentionSearchText]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.mention-dropdown') && !target.closest('.prompt-textarea')) {
+        setShowMentionDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -235,13 +327,72 @@ export function Prompting({
           <div className="mb-2 text-center text-sm font-bold uppercase tracking-wider text-gray-400">
             ◆ CRAFT YOUR INCANTATION ◆
           </div>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value.slice(0, PROMPT_MAX_LENGTH))}
-            placeholder="Describe the image you want to generate..."
-            maxLength={PROMPT_MAX_LENGTH}
-            className="h-32 w-full resize-none rounded-lg border-2 border-gray-700 bg-gray-900 p-4 font-mono text-white placeholder-gray-500 focus:border-prompt-purple focus:outline-none"
-          />
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={handlePromptChange}
+              placeholder={mentionsEnabled ? "Describe the image... Type @ to mention players" : "Describe the image you want to generate..."}
+              maxLength={PROMPT_MAX_LENGTH}
+              className="prompt-textarea h-32 w-full resize-none rounded-lg border-2 border-gray-700 bg-gray-900 p-4 font-mono text-white placeholder-gray-500 focus:border-prompt-purple focus:outline-none"
+            />
+            {/* @Mention Dropdown */}
+            {showMentionDropdown && filteredPlayers.length > 0 && (
+              <div className="mention-dropdown absolute left-4 top-full z-50 mt-1 max-h-48 w-64 overflow-y-auto rounded-lg border-2 border-prompt-purple bg-gray-900 shadow-xl">
+                <div className="p-2 text-xs font-bold uppercase tracking-widest text-prompt-purple">
+                  Select Player
+                </div>
+                {filteredPlayers.map((player) => (
+                  <button
+                    key={player.id}
+                    onClick={() => handleSelectMention(player)}
+                    onMouseEnter={() => void playHover()}
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-prompt-purple/20"
+                  >
+                    {player.avatar ? (
+                      <img src={player.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-bold">
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="font-semibold text-white">@{player.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Featuring Section */}
+          {mentionedPlayers.length > 0 && (
+            <div className="mt-2 rounded-lg border border-prompt-pink/50 bg-prompt-pink/10 p-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-prompt-pink">Featuring:</span>
+                {mentionedPlayers.map((player) => (
+                  <span
+                    key={player.id}
+                    className="inline-flex items-center gap-1 rounded-full bg-prompt-pink/30 px-2 py-1 text-xs font-semibold text-prompt-pink"
+                  >
+                    {player.avatar ? (
+                      <img src={player.avatar} alt="" className="h-4 w-4 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-prompt-pink/50 text-[10px]">
+                        {player.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    @{player.name}
+                  </span>
+                ))}
+              </div>
+              {mentionedPlayers.length > 3 && (
+                <div className="mt-1 flex items-center gap-1 text-xs text-yellow-500">
+                  <span>⚠️</span>
+                  <span>More than 3 mentions may affect image quality</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-2 flex justify-between text-sm">
             <span className="text-gray-500">
               {prompt.length}/{PROMPT_MAX_LENGTH} characters

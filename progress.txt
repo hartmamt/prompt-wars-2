@@ -953,3 +953,45 @@
 - ✅ Awards displayed with animations (staggered reveal)
 - ✅ Award recipient avatar shown
 
+
+## US-033: @Mention Autocomplete
+**Status:** PASSED
+**Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+### Changes Made:
+1. **Prompting Component (Prompting.tsx)**:
+   - Added `modelProvider` prop to conditionally enable @mentions (Nano Banana only)
+   - Added `useMemo` import for mention parsing
+   - Added state: `showMentionDropdown`, `mentionSearchText`, `mentionCursorPosition`
+   - Added `textareaRef` for cursor management
+   - Added `mentionsEnabled` computed from modelProvider
+   - Added `mentionedPlayers` memoized value parsing @username from prompt
+   - Added `filteredPlayers` for dropdown filtering
+   - Added `handlePromptChange` callback to detect @ typing and show dropdown
+   - Added `handleSelectMention` callback to insert player name
+   - Added click outside handler to close dropdown
+
+2. **UI Updates (Prompting.tsx)**:
+   - Updated textarea with `ref={textareaRef}` and dynamic placeholder
+   - Added `prompt-textarea` class for click outside detection
+   - Added mention dropdown below textarea:
+     - Shows filtered players with avatar and @name
+     - Purple border and dark background
+     - Hover effect on each option
+   - Added "Featuring" section when mentions detected:
+     - Shows mentioned players as styled chips/tags
+     - Each chip shows avatar thumbnail and @name
+     - Pink gradient styling
+   - Added warning when >3 players mentioned
+
+3. **App.tsx Updates**:
+   - Pass `modelProvider={gameState.modelProvider}` to Prompting component
+
+### Acceptance Criteria Met:
+- ✅ Typing @ shows autocomplete dropdown
+- ✅ Shows all players with avatar thumbnails
+- ✅ Selecting player inserts @username
+- ✅ Display as styled tag/chip after selection (Featuring section)
+- ✅ Show 'Featuring: Player1, Player2' below input
+- ✅ Warning if more than 3 avatars mentioned
+

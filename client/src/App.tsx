@@ -594,6 +594,7 @@ function App() {
           incomingSabotage={incomingSabotage as { attackerName: string; sabotageType?: 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box' } | null}
           armedSabotages={armedSabotages}
           sabotagesAgainstMe={sabotagesAgainstMe}
+          modelProvider={gameState.modelProvider}
         />
         <MuteButton />
       </div>
