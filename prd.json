@@ -542,7 +542,7 @@
         "Tokens spent: slot machine sound"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "Audio for chaos features"
     },
     {

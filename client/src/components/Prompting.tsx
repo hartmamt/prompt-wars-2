@@ -1,5 +1,17 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { playClick, playHover, playCountdownTick, playThemeReveal, playPromptSubmit } from '../sounds';
+import {
+  playClick,
+  playHover,
+  playCountdownTick,
+  playThemeReveal,
+  playPromptSubmit,
+  playSabotageMenuOpen,
+  playTargetLockOn,
+  playSabotageConfirmed,
+  playIncomingSabotage,
+  playTokensEarned,
+  playTokensSpent,
+} from '../sounds';
 import type { Player, ModelProvider } from '../types';
 
 type SabotageType = 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box';
@@ -113,6 +125,7 @@ export function Prompting({
   // Trigger flash animation on incoming sabotage
   useEffect(() => {
     if (incomingSabotage) {
+      playIncomingSabotage();
       setShowFlash(true);
       const timer = setTimeout(() => setShowFlash(false), 1000);
       return () => clearTimeout(timer);
@@ -124,6 +137,11 @@ export function Prompting({
   useEffect(() => {
     const diff = currentPlayerTokens - prevTokensRef.current;
     if (diff !== 0) {
+      if (diff > 0) {
+        playTokensEarned();
+      } else {
+        playTokensSpent();
+      }
       setTokenAnimation({
         amount: Math.abs(diff),
         type: diff > 0 ? 'earn' : 'spend',
@@ -177,6 +195,7 @@ export function Prompting({
   const handleSabotage = useCallback(() => {
     if (selectedVictimId && canAffordSelected) {
       void playClick();
+      playSabotageConfirmed();
       onUseSabotage(selectedVictimId, selectedSabotageType);
       setSelectedVictimId(null);
       setShowSabotagePanel(false);
@@ -432,7 +451,7 @@ export function Prompting({
         <div className="mb-6 w-full max-w-2xl">
           {!showSabotagePanel ? (
             <button
-              onClick={() => { void playClick(); setShowSabotagePanel(true); }}
+              onClick={() => { void playClick(); playSabotageMenuOpen(); setShowSabotagePanel(true); }}
               onMouseEnter={() => void playHover()}
               disabled={!canAffordAnySabotage}
               className={`w-full rounded-lg border-2 px-4 py-3 text-center transition-all ${
@@ -501,7 +520,7 @@ export function Prompting({
                   return (
                     <button
                       key={player.id}
-                      onClick={() => { void playClick(); setSelectedVictimId(player.id); }}
+                      onClick={() => { void playClick(); playTargetLockOn(); setSelectedVictimId(player.id); }}
                       className={`flex w-full items-center gap-3 rounded-lg border-2 p-3 transition-all ${
                         selectedVictimId === player.id
                           ? 'border-red-500 bg-red-900/30'

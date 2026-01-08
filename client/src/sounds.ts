@@ -869,3 +869,381 @@ export function stopLobbyAmbience(): void {
   lobbyAmbienceOsc = null;
   lobbyAmbienceGain = null;
 }
+
+// ===========================================
+// Chaos Mode Audio (US-035)
+// ===========================================
+
+// Sabotage menu open: ominous whoosh
+export function playSabotageMenuOpen(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Ominous reverse sweep
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(50, now);
+  osc.frequency.exponentialRampToValueAtTime(400, now + 0.25);
+  osc.frequency.exponentialRampToValueAtTime(200, now + 0.35);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(300, now);
+  filter.frequency.exponentialRampToValueAtTime(1500, now + 0.2);
+  filter.frequency.exponentialRampToValueAtTime(600, now + 0.35);
+  filter.Q.setValueAtTime(5, now);
+
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.25, now + 0.1);
+  gain.gain.linearRampToValueAtTime(0.15, now + 0.25);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.5);
+
+  osc.onended = () => { osc.disconnect(); filter.disconnect(); gain.disconnect(); };
+}
+
+// Target selected: lock-on sound
+export function playTargetLockOn(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Rapid beeps converging (lock-on)
+  for (let i = 0; i < 4; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const startTime = now + i * 0.06;
+    const freq = 800 + (4 - i) * 100; // Descending then converging
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
+    gain.gain.linearRampToValueAtTime(0, startTime + 0.04);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + 0.05);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  }
+
+  // Final lock tone
+  const lockOsc = ctx.createOscillator();
+  const lockGain = ctx.createGain();
+
+  lockOsc.type = 'sine';
+  lockOsc.frequency.setValueAtTime(1200, now + 0.25);
+
+  lockGain.gain.setValueAtTime(0, now + 0.25);
+  lockGain.gain.linearRampToValueAtTime(0.3, now + 0.26);
+  lockGain.gain.setValueAtTime(0.3, now + 0.35);
+  lockGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+  lockOsc.connect(lockGain);
+  lockGain.connect(ctx.destination);
+
+  lockOsc.start(now + 0.25);
+  lockOsc.stop(now + 0.55);
+
+  lockOsc.onended = () => { lockOsc.disconnect(); lockGain.disconnect(); };
+}
+
+// Sabotage confirmed: evil confirm sound
+export function playSabotageConfirmed(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Dark descending chord
+  const freqs = [350, 233, 175]; // Diminished chord
+  freqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const distortion = ctx.createWaveShaper();
+
+    // Distortion curve
+    const samples = 256;
+    const curve = new Float32Array(samples);
+    for (let j = 0; j < samples; j++) {
+      const x = (j * 2) / samples - 1;
+      curve[j] = Math.tanh(x * 2);
+    }
+    distortion.curve = curve;
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.8, now + 0.3);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+    gain.gain.setValueAtTime(0.15, now + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+    osc.connect(distortion);
+    distortion.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now + i * 0.03);
+    osc.stop(now + 0.4);
+
+    osc.onended = () => { osc.disconnect(); distortion.disconnect(); gain.disconnect(); };
+  });
+
+  // Evil laugh-like glitch
+  const laughOsc = ctx.createOscillator();
+  const laughGain = ctx.createGain();
+  laughOsc.type = 'square';
+  laughOsc.frequency.setValueAtTime(300, now + 0.15);
+  laughOsc.frequency.setValueAtTime(250, now + 0.2);
+  laughOsc.frequency.setValueAtTime(200, now + 0.25);
+  laughGain.gain.setValueAtTime(0, now + 0.15);
+  laughGain.gain.linearRampToValueAtTime(0.1, now + 0.16);
+  laughGain.gain.setValueAtTime(0.08, now + 0.2);
+  laughGain.gain.setValueAtTime(0.06, now + 0.25);
+  laughGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+  laughOsc.connect(laughGain);
+  laughGain.connect(ctx.destination);
+  laughOsc.start(now + 0.15);
+  laughOsc.stop(now + 0.4);
+
+  laughOsc.onended = () => { laughOsc.disconnect(); laughGain.disconnect(); };
+}
+
+// Incoming sabotage warning: alarm glitch
+export function playIncomingSabotage(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Alarm-like oscillating tone with glitch
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const startTime = now + i * 0.15;
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(600, startTime);
+    osc.frequency.setValueAtTime(400, startTime + 0.07);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+    gain.gain.setValueAtTime(0.3, startTime + 0.06);
+    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.08);
+    gain.gain.setValueAtTime(0.2, startTime + 0.12);
+    gain.gain.linearRampToValueAtTime(0, startTime + 0.14);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + 0.15);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  }
+
+  // Glitch burst
+  for (let i = 0; i < 5; i++) {
+    const glitchOsc = ctx.createOscillator();
+    const glitchGain = ctx.createGain();
+
+    const startTime = now + 0.1 + Math.random() * 0.3;
+
+    glitchOsc.type = 'square';
+    glitchOsc.frequency.setValueAtTime(200 + Math.random() * 800, startTime);
+
+    glitchGain.gain.setValueAtTime(0, startTime);
+    glitchGain.gain.linearRampToValueAtTime(0.15, startTime + 0.005);
+    glitchGain.gain.linearRampToValueAtTime(0, startTime + 0.02);
+
+    glitchOsc.connect(glitchGain);
+    glitchGain.connect(ctx.destination);
+
+    glitchOsc.start(startTime);
+    glitchOsc.stop(startTime + 0.03);
+
+    glitchOsc.onended = () => { glitchOsc.disconnect(); glitchGain.disconnect(); };
+  }
+}
+
+// Modifier reveal: corruption sound
+export function playModifierReveal(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Glitchy data corruption sound
+  for (let i = 0; i < 10; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const startTime = now + i * 0.03;
+    const freq = 200 + Math.random() * 1000;
+
+    osc.type = i % 2 === 0 ? 'square' : 'sawtooth';
+    osc.frequency.setValueAtTime(freq, startTime);
+    osc.frequency.exponentialRampToValueAtTime(freq * (0.5 + Math.random()), startTime + 0.02);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.12, startTime + 0.005);
+    gain.gain.linearRampToValueAtTime(0, startTime + 0.025);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + 0.03);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  }
+
+  // Final corrupted tone
+  const finalOsc = ctx.createOscillator();
+  const finalGain = ctx.createGain();
+  const distortion = ctx.createWaveShaper();
+
+  const samples = 256;
+  const curve = new Float32Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / samples - 1;
+    curve[i] = Math.tanh(x * 4);
+  }
+  distortion.curve = curve;
+
+  finalOsc.type = 'sawtooth';
+  finalOsc.frequency.setValueAtTime(300, now + 0.3);
+  finalOsc.frequency.exponentialRampToValueAtTime(150, now + 0.5);
+
+  finalGain.gain.setValueAtTime(0, now + 0.3);
+  finalGain.gain.linearRampToValueAtTime(0.2, now + 0.32);
+  finalGain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+
+  finalOsc.connect(distortion);
+  distortion.connect(finalGain);
+  finalGain.connect(ctx.destination);
+
+  finalOsc.start(now + 0.3);
+  finalOsc.stop(now + 0.6);
+
+  finalOsc.onended = () => { finalOsc.disconnect(); distortion.disconnect(); finalGain.disconnect(); };
+}
+
+// Tokens earned: coin sound
+export function playTokensEarned(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Classic coin collect sound
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(987.77, now); // B5
+  osc1.frequency.setValueAtTime(1318.51, now + 0.05); // E6
+
+  gain1.gain.setValueAtTime(0, now);
+  gain1.gain.linearRampToValueAtTime(0.25, now + 0.01);
+  gain1.gain.setValueAtTime(0.25, now + 0.04);
+  gain1.gain.linearRampToValueAtTime(0.2, now + 0.06);
+  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+
+  osc1.start(now);
+  osc1.stop(now + 0.3);
+
+  osc1.onended = () => { osc1.disconnect(); gain1.disconnect(); };
+
+  // Shimmer overtone
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(2637.02, now + 0.05); // E7
+
+  gain2.gain.setValueAtTime(0, now + 0.05);
+  gain2.gain.linearRampToValueAtTime(0.1, now + 0.06);
+  gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+  osc2.connect(gain2);
+  gain2.connect(ctx.destination);
+
+  osc2.start(now + 0.05);
+  osc2.stop(now + 0.25);
+
+  osc2.onended = () => { osc2.disconnect(); gain2.disconnect(); };
+}
+
+// Tokens spent: slot machine sound
+export function playTokensSpent(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Slot machine reel stop sound
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const startTime = now + i * 0.08;
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(300 - i * 30, startTime);
+    osc.frequency.exponentialRampToValueAtTime(150 - i * 20, startTime + 0.05);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.06);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + 0.08);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  }
+
+  // Mechanical click at the end
+  const clickOsc = ctx.createOscillator();
+  const clickGain = ctx.createGain();
+
+  clickOsc.type = 'square';
+  clickOsc.frequency.setValueAtTime(100, now + 0.25);
+  clickOsc.frequency.exponentialRampToValueAtTime(50, now + 0.28);
+
+  clickGain.gain.setValueAtTime(0, now + 0.25);
+  clickGain.gain.linearRampToValueAtTime(0.25, now + 0.255);
+  clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.32);
+
+  clickOsc.connect(clickGain);
+  clickGain.connect(ctx.destination);
+
+  clickOsc.start(now + 0.25);
+  clickOsc.stop(now + 0.35);
+
+  clickOsc.onended = () => { clickOsc.disconnect(); clickGain.disconnect(); };
+}

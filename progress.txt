@@ -1049,3 +1049,22 @@ model (like Gemini) that supports reference images. Current implementation track
 the data and displays the overlay - model integration would be added when switching
 to a capable provider.
 
+
+
+## US-035: Chaos Mode Audio
+- Added 7 new procedural sound functions to sounds.ts:
+  - playSabotageMenuOpen(): ominous whoosh sound
+  - playTargetLockOn(): lock-on beeps sound
+  - playSabotageConfirmed(): evil confirmation sound
+  - playIncomingSabotage(): alarm glitch sound
+  - playModifierReveal(): corruption sound
+  - playTokensEarned(): coin jingle sound
+  - playTokensSpent(): slot machine sound
+- Integrated sounds into Prompting.tsx:
+  - Sabotage menu open plays ominous whoosh
+  - Target selection plays lock-on sound
+  - Sabotage confirmation plays evil confirm
+  - Incoming sabotage notification plays alarm glitch
+  - Token changes play earn/spend sounds
+- Integrated modifier reveal sound into Results.tsx
+- All typecheck and lint passing

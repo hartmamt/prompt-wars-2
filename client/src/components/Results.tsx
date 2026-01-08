@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { LeaderboardEntry } from '../types';
-import { playClick, playHover, playNavigate, playRoundWin, playRoundLose } from '../sounds';
+import { playClick, playHover, playNavigate, playRoundWin, playRoundLose, playModifierReveal } from '../sounds';
 
 interface MentionedPlayer {
   playerId: string;
@@ -57,6 +57,11 @@ export function Results({
       if (roundWinner) {
         playRoundLose();
       }
+    }
+
+    // Play modifier reveal sound if there was a chaos modifier
+    if (roundWinner?.modifierText) {
+      setTimeout(() => playModifierReveal(), 800);
     }
   }, [roundWinner, currentPlayerId]);
 
