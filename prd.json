@@ -1,0 +1,630 @@
+{
+  "branchName": "ralph/prompt-wars",
+  "projectName": "Prompt Wars",
+  "description": "Multiplayer Discord Activity party game where players compete to create AI-generated images matching secret themes",
+  "techStack": {
+    "server": ["Node.js", "Express", "Socket.io", "TypeScript"],
+    "client": ["React", "Vite", "TypeScript", "Tailwind CSS"],
+    "imageAPI": ["Flux Schnell (fal.ai)", "Gemini 2.5 Flash (Nano Banana)"],
+    "platform": ["Discord Embedded App SDK"],
+    "hosting": ["Render (server)", "Render Static Site (client)"]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Server Foundation",
+      "acceptanceCriteria": [
+        "Express server with TypeScript strict mode",
+        "Socket.io configured for real-time communication",
+        "Health endpoint at GET /health returns {status: 'ok'}",
+        "Environment variables loaded (PORT, GEMINI_API_KEY, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, CORS_ORIGIN)",
+        "npm run build and npm run dev scripts work",
+        "No TypeScript 'any' types"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Foundation for all server features"
+    },
+    {
+      "id": "US-002",
+      "title": "Client Foundation",
+      "acceptanceCriteria": [
+        "React + Vite + TypeScript setup",
+        "Tailwind CSS configured",
+        "Discord Embedded App SDK integrated",
+        "Socket.io client connects to server",
+        "Environment variables (VITE_DISCORD_CLIENT_ID, VITE_SOCKET_URL)",
+        "npm run build produces dist folder",
+        "Mobile responsive base layout"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Foundation for all client features"
+    },
+    {
+      "id": "US-003",
+      "title": "Multiplayer Room System",
+      "acceptanceCriteria": [
+        "Generate 4-character room codes (e.g., 'AB12')",
+        "Create room endpoint/socket event",
+        "Join room with code",
+        "2-8 players per room enforced",
+        "Real-time player list updates via Socket.io",
+        "Host designation (first player)",
+        "Player disconnect handling"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Core multiplayer infrastructure"
+    },
+    {
+      "id": "US-004",
+      "title": "Lobby Phase",
+      "acceptanceCriteria": [
+        "Display room code prominently",
+        "Show connected players list with names",
+        "Host can see 'Start Game' button when 2+ players",
+        "Non-hosts see 'Waiting for host' message",
+        "Real-time updates when players join/leave",
+        "Player ready status indicators"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "First game phase players see"
+    },
+    {
+      "id": "US-005",
+      "title": "Theme System",
+      "acceptanceCriteria": [
+        "150+ themes organized by category",
+        "Categories: Pop Culture, Absurd Scenarios, Mashups, Vibes, Challenges, Art Style Twists, Relatable Moments",
+        "No theme repeats within a game session",
+        "Random theme selection from chosen category",
+        "Theme data structure supports category filtering"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Core content that drives gameplay"
+    },
+    {
+      "id": "US-006",
+      "title": "Host Category Selection",
+      "acceptanceCriteria": [
+        "Host sees category selector before starting game",
+        "Options: All Categories (default), plus each individual category",
+        "Selected category stored in game state",
+        "Category name displayed during gameplay",
+        "Themes filtered by selected category"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Lets groups pick their humor style"
+    },
+    {
+      "id": "US-007",
+      "title": "Prompting Phase",
+      "acceptanceCriteria": [
+        "90 second countdown timer",
+        "Display secret theme to all players",
+        "Text input for prompt with character limit",
+        "Submit button sends prompt to server",
+        "Visual indicator when prompt submitted",
+        "Timer visible and counts down",
+        "Auto-submit when timer expires"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Core gameplay phase"
+    },
+    {
+      "id": "US-008",
+      "title": "Flux Schnell Image Generation",
+      "acceptanceCriteria": [
+        "POST to fal-ai/flux/schnell endpoint",
+        "FAL_API_KEY environment variable used",
+        "Accept prompt string, return base64 image",
+        "Handle API errors gracefully with fallback message",
+        "Generation timeout handling (30s max)",
+        "Response parsed correctly for image data"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Primary image generation for game images (~$0.003/image)"
+    },
+    {
+      "id": "US-009",
+      "title": "Generating Phase UI",
+      "acceptanceCriteria": [
+        "Display 'Generating...' state with animations",
+        "Show fake humorous progress messages that rotate",
+        "Progress indicator (can be fake/animated)",
+        "Handle generation completion for all players",
+        "Transition to voting when all images ready",
+        "Error state if generation fails"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Loading state between prompting and voting"
+    },
+    {
+      "id": "US-010",
+      "title": "Voting Phase",
+      "acceptanceCriteria": [
+        "60 seconds per matchup",
+        "Head-to-head display of two images",
+        "Images side-by-side on desktop",
+        "Vote buttons for each image",
+        "Cannot vote for own image",
+        "Visual feedback when vote cast",
+        "Timer countdown visible",
+        "Auto-advance when timer expires"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Core competitive mechanic"
+    },
+    {
+      "id": "US-011",
+      "title": "Scoring System",
+      "acceptanceCriteria": [
+        "Win head-to-head vote: +500 points",
+        "Fastest correct vote: +50 bonus",
+        "Score persists across rounds",
+        "Leaderboard sorted by score",
+        "Score animations when points awarded"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Competitive progression"
+    },
+    {
+      "id": "US-012",
+      "title": "Round Results Phase",
+      "acceptanceCriteria": [
+        "Display winning image prominently",
+        "Show original prompt that created it",
+        "Reveal the theme",
+        "Show vote breakdown",
+        "Display updated scores/leaderboard",
+        "Transition to next round or final results"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Feedback loop between rounds"
+    },
+    {
+      "id": "US-013",
+      "title": "Final Results Phase",
+      "acceptanceCriteria": [
+        "Winner announcement with celebration",
+        "Final leaderboard display",
+        "Winner title (e.g., 'SUPREME PROMPT OVERLORD')",
+        "Loser titles (affectionate)",
+        "Play again option",
+        "Return to lobby option"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Game conclusion"
+    },
+    {
+      "id": "US-014",
+      "title": "Game Flow Controller",
+      "acceptanceCriteria": [
+        "State machine: lobby → prompting → generating → voting → results → final",
+        "3 rounds per game",
+        "Automatic phase transitions",
+        "Handle player disconnects mid-game",
+        "Sync state across all clients",
+        "Game mode: Classic (same theme for all)"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Orchestrates entire game lifecycle"
+    },
+    {
+      "id": "US-015",
+      "title": "Style & Personality - UI Text",
+      "acceptanceCriteria": [
+        "Lobby header: 'PROMPT WARRIORS ASSEMBLE'",
+        "Room code styled as classified document",
+        "Player list as 'REGISTERED COMBATANTS'",
+        "Start button: 'INITIATE PROMPT WARFARE'",
+        "Prompt input header: 'CRAFT YOUR INCANTATION'",
+        "All loading/error messages use humorous copy",
+        "No generic/boring text anywhere"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Personality that makes game memorable"
+    },
+    {
+      "id": "US-016",
+      "title": "Style & Personality - Visual Design",
+      "acceptanceCriteria": [
+        "Color palette: electric purple, hot pink, neon green, deep black",
+        "Glitch effects on transitions",
+        "CRT scanline overlays (subtle)",
+        "Bold arcade-style display font for headers",
+        "Monospace font for prompts",
+        "Buttons styled as terminal commands",
+        "Cards with holographic/iridescent borders"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Visual identity"
+    },
+    {
+      "id": "US-017",
+      "title": "Loading States & Humor",
+      "acceptanceCriteria": [
+        "Rotating humorous loading messages",
+        "Examples: 'Teaching AI what fingers look like...', 'Adding extra fingers (will fix later)...'",
+        "Connection lost: 'THE AI HAS ABANDONED US'",
+        "Generation failed: 'THE MACHINE SPIRIT IS DISPLEASED'",
+        "Progress bar occasionally goes backwards",
+        "Fake 'AI Confidence' meter that fluctuates"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Humor during wait states"
+    },
+    {
+      "id": "US-018",
+      "title": "Desktop Responsive Layout",
+      "acceptanceCriteria": [
+        "Content fills horizontal space on desktop",
+        "Side-by-side layouts for voting images",
+        "Results display as grid, not vertical list",
+        "Images scale larger on desktop",
+        "Reduced padding/margins on larger screens",
+        "No narrow mobile-style column on desktop",
+        "Works at 1920x1080 and 1366x768"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Desktop-first for party game setting"
+    },
+    {
+      "id": "US-019",
+      "title": "Nano Banana Avatar Generation API",
+      "acceptanceCriteria": [
+        "POST /api/avatar/generate endpoint",
+        "Accepts {photoBase64: string, style: string}",
+        "Calls Gemini 2.5 Flash Image API with photo + style prompt",
+        "Returns generated avatar as base64",
+        "5 styles: cartoon, anime, pixel, fantasy, sketch",
+        "Error handling for API failures"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "Server-side avatar generation"
+    },
+    {
+      "id": "US-020",
+      "title": "Avatar Options UI",
+      "acceptanceCriteria": [
+        "Three options: Keep Discord Avatar, Upload Custom Photo, AI Stylized Avatar",
+        "Discord avatar is default option",
+        "Upload accepts image files, crops to square",
+        "AI option shows style selector",
+        "Photo preview stays visible after selecting AI style",
+        "Photo preview stays visible during generation",
+        "Generated avatar replaces preview on completion"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Flexible avatar creation in lobby"
+    },
+    {
+      "id": "US-021",
+      "title": "Avatar Display Throughout Game",
+      "acceptanceCriteria": [
+        "Avatar stored in player state",
+        "Displayed in player list",
+        "Displayed in voting screens",
+        "Displayed in results",
+        "Fallback to Discord avatar if no custom avatar"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Avatar persistence"
+    },
+    {
+      "id": "US-022",
+      "title": "Audio Engine Core",
+      "acceptanceCriteria": [
+        "Web Audio API initialization on first user interaction",
+        "AudioEngine class with play() and startLoop()/stopLoop() methods",
+        "Global mute toggle",
+        "Parameter randomization for organic feel",
+        "Proper node cleanup to prevent memory leaks",
+        "Graceful fallback if Web Audio unavailable",
+        "Works in Discord Activity iframe"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "Audio infrastructure"
+    },
+    {
+      "id": "US-023",
+      "title": "Audio - UI Sounds",
+      "acceptanceCriteria": [
+        "Button hover: quick high-frequency blip",
+        "Button click: punchy mid-frequency pop",
+        "Menu navigation: synthetic whoosh sweep",
+        "Error: crunchy distorted buzz",
+        "Success: ascending two-tone chime"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Basic interaction feedback"
+    },
+    {
+      "id": "US-024",
+      "title": "Audio - Game Phase Sounds",
+      "acceptanceCriteria": [
+        "Countdown tick with pitch drop, tension in last 5 seconds",
+        "Phase transition: bass drop with glitch stutter",
+        "Theme reveal: rapid glitchy 'decrypting' sound",
+        "Prompt submitted: mechanical lock-in sound",
+        "Image reveal: heavy impact bass thump",
+        "VS sting: fighting game flourish",
+        "Vote cast: chunky confirmation"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "Game event audio"
+    },
+    {
+      "id": "US-025",
+      "title": "Audio - Results & Ambience",
+      "acceptanceCriteria": [
+        "Score tick up: rapid ascending blips",
+        "Round win: triumphant synth fanfare",
+        "Round lose: comedic descending tones",
+        "Final victory: extended celebration sequence",
+        "AI processing ambience: low drone with glitch pops",
+        "Lobby ambience: subtle synthetic hum"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "Emotional audio feedback"
+    },
+    {
+      "id": "US-026",
+      "title": "Model Provider Selection",
+      "acceptanceCriteria": [
+        "Host sees model selector in lobby",
+        "Options: Nano Banana (full features), Flux Schnell (fast & cheap)",
+        "Default to Flux Schnell",
+        "When Flux selected: AI avatars disabled, @mentions disabled",
+        "Selected provider shown to all players",
+        "Provider abstraction interface for both"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "Cost/quality/speed tradeoffs"
+    },
+    {
+      "id": "US-027",
+      "title": "Chaos Mode - Cosmic Modifiers",
+      "acceptanceCriteria": [
+        "100+ modifiers across categories: Style, Context, Chaos, Vibe",
+        "Random modifier applied to each prompt",
+        "Intensity scaling: light (rounds 1-2), medium (3-4), maximum (5+)",
+        "Store original + modified prompt",
+        "Reveal shows modifier that was applied",
+        "Host toggle for chaos on/off in lobby"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "Automatic prompt corruption for chaos"
+    },
+    {
+      "id": "US-028",
+      "title": "Glitch Token Economy",
+      "acceptanceCriteria": [
+        "Players start with 2 tokens",
+        "Win head-to-head: +1 token",
+        "Vote with majority: +1 token",
+        "Win round: +2 tokens",
+        "Token count displayed next to player",
+        "Animated earn/spend effects",
+        "Tokens reset each game"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "Currency for sabotage system"
+    },
+    {
+      "id": "US-029",
+      "title": "Sabotage - Word Injection",
+      "acceptanceCriteria": [
+        "Costs 2 tokens",
+        "50+ injection options (e.g., 'wearing crocs', 'with a mullet')",
+        "Sabotage UI panel during prompt phase",
+        "Target player selection",
+        "Confirmation before spending tokens",
+        "Victim sees 'INCOMING SABOTAGE' warning",
+        "Sabotage revealed in results"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "Basic sabotage type"
+    },
+    {
+      "id": "US-030",
+      "title": "Sabotage - Additional Types",
+      "acceptanceCriteria": [
+        "Style Override (3 tokens): replace style with 'Minions style', 'bad tattoo', etc.",
+        "Photobomb (2 tokens): your avatar injected into their image",
+        "Prompt Swap (4 tokens): exchange prompts with target",
+        "Mystery Box (1 token): random effect weighted toward cheaper ones",
+        "Cannot sabotage same player consecutively",
+        "Max 2 sabotages per player per game"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "Strategic sabotage options"
+    },
+    {
+      "id": "US-031",
+      "title": "Sabotage UI & Animations",
+      "acceptanceCriteria": [
+        "Red crosshair on targeted player",
+        "Armed sabotage indicator",
+        "Incoming warning with screen edge flash",
+        "Dramatic sabotage reveal before images",
+        "Photobomb highlight circle on image",
+        "Token earn/spend animations",
+        "Protected badge after 2 sabotages"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": "Visual feedback for sabotage"
+    },
+    {
+      "id": "US-032",
+      "title": "Chaos End-Game Stats",
+      "acceptanceCriteria": [
+        "Agent of Chaos: most sabotages used",
+        "Survivor: won despite being sabotaged",
+        "Karma: sabotaged someone who beat them",
+        "Backfire: sabotage helped victim win",
+        "Awards displayed with animations",
+        "Award recipient avatar shown"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": "Chaos-related achievements"
+    },
+    {
+      "id": "US-033",
+      "title": "@Mention Autocomplete",
+      "acceptanceCriteria": [
+        "Typing @ shows autocomplete dropdown",
+        "Shows all players with avatar thumbnails",
+        "Selecting player inserts @username",
+        "Display as styled tag/chip after selection",
+        "Show 'Featuring: Player1, Player2' below input",
+        "Warning if more than 3 avatars mentioned"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": "Requires Nano Banana provider"
+    },
+    {
+      "id": "US-034",
+      "title": "@Mention Image Generation",
+      "acceptanceCriteria": [
+        "Parse @username mentions from prompt",
+        "Replace with [Person N] for Gemini",
+        "Include mentioned player avatars as reference images",
+        "Add instruction to maintain likenesses",
+        "Track mentioned players in image metadata",
+        "Show 'Featuring' overlay on revealed images"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": "Image-to-image with avatars"
+    },
+    {
+      "id": "US-035",
+      "title": "Chaos Mode Audio",
+      "acceptanceCriteria": [
+        "Sabotage menu open: ominous whoosh",
+        "Target selected: lock-on sound",
+        "Sabotage confirmed: evil confirm sound",
+        "Incoming warning: alarm glitch",
+        "Modifier reveal: corruption sound",
+        "Tokens earned: coin sound",
+        "Tokens spent: slot machine sound"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": "Audio for chaos features"
+    },
+    {
+      "id": "US-036",
+      "title": "Marketing Landing Page",
+      "acceptanceCriteria": [
+        "Same visual style as game (purple, pink, neon green)",
+        "Same audio engine integrated with mute",
+        "Hero with logo, tagline, CTA to play",
+        "What Is This section explaining game",
+        "How It Works flow explanation",
+        "Features list (multiplayer, Discord, avatars, etc.)",
+        "Gallery of example generated images",
+        "Responsive on desktop and mobile"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": "Marketing presence"
+    },
+    {
+      "id": "US-037",
+      "title": "Deploy Server to Render",
+      "acceptanceCriteria": [
+        "Render Web Service created",
+        "Build: cd server && npm ci && npm run build",
+        "Start: cd server && npm start",
+        "Health check at /health returns 200",
+        "Environment variables set (GEMINI_API_KEY, FAL_API_KEY, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET)",
+        "Server logs show no startup errors"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": "Production server hosting"
+    },
+    {
+      "id": "US-038",
+      "title": "Deploy Client to Render Static",
+      "acceptanceCriteria": [
+        "Render Static Site created",
+        "Build: cd client && npm ci && npm run build",
+        "Publish directory: client/dist",
+        "VITE_SOCKET_URL points to server URL",
+        "Client loads without console errors",
+        "CORS_ORIGIN on server updated with client URL"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": "Production client hosting"
+    },
+    {
+      "id": "US-039",
+      "title": "Discord Activity Configuration",
+      "acceptanceCriteria": [
+        "OAuth2 redirect configured",
+        "Activities enabled in Discord Developer Portal",
+        "Root URL set to client URL",
+        "URL mappings for /api prefix to server",
+        "Activity appears in Discord Activities menu",
+        "Activity launches in Discord iframe",
+        "Discord authentication works"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": "Discord integration"
+    },
+    {
+      "id": "US-040",
+      "title": "End-to-End Playability Verification",
+      "acceptanceCriteria": [
+        "Can create room and get room code",
+        "Second player can join with code",
+        "Players see each other in real-time",
+        "Host can start game",
+        "Prompts submit successfully",
+        "Images generate (Flux or Nano Banana)",
+        "Voting works",
+        "Results display correctly",
+        "Full game playable in browser AND Discord Activity"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": "Final integration test"
+    }
+  ]
+}
