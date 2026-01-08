@@ -3,7 +3,8 @@ import { socket, connectSocket } from './socket';
 import { setupDiscord, isInDiscord, type DiscordUser } from './discord';
 import { Home } from './components/Home';
 import { Lobby } from './components/Lobby';
-import type { RoomState, GamePhase, Player, CategorySelection } from './types';
+import { Prompting } from './components/Prompting';
+import type { RoomState, GamePhase, Player, CategorySelection, GameState } from './types';
 
 interface RoomResponse {
   success: boolean;
@@ -27,13 +28,25 @@ interface RoomUpdatedEvent {
   room: RoomState;
 }
 
+interface GameStartedEvent {
+  gameState: GameState;
+}
+
+interface PromptSubmittedEvent {
+  playerId: string;
+  submittedPlayerIds: string[];
+  allSubmitted: boolean;
+}
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<GamePhase>('home');
   const [room, setRoom] = useState<RoomState | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasSubmittedPrompt, setHasSubmittedPrompt] = useState(false);
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -64,7 +77,9 @@ function App() {
     const onDisconnect = () => {
       setConnected(false);
       setRoom(null);
+      setGameState(null);
       setPhase('home');
+      setHasSubmittedPrompt(false);
     };
 
     const onPlayerJoined = (data: PlayerJoinedEvent) => {
@@ -79,11 +94,37 @@ function App() {
       setRoom(data.room);
     };
 
+    const onGameStarted = (data: GameStartedEvent) => {
+      setGameState(data.gameState);
+      setPhase(data.gameState.phase);
+      setHasSubmittedPrompt(false);
+    };
+
+    const onPromptSubmitted = (data: PromptSubmittedEvent) => {
+      setGameState((prev) => {
+        if (!prev?.currentRound) return prev;
+        return {
+          ...prev,
+          currentRound: {
+            ...prev.currentRound,
+            submittedPlayerIds: data.submittedPlayerIds,
+          },
+        };
+      });
+
+      // Check if current player submitted
+      if (data.playerId === currentPlayerId) {
+        setHasSubmittedPrompt(true);
+      }
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('player-joined', onPlayerJoined);
     socket.on('player-left', onPlayerLeft);
     socket.on('room-updated', onRoomUpdated);
+    socket.on('game-started', onGameStarted);
+    socket.on('prompt-submitted', onPromptSubmitted);
 
     // Check if already connected
     if (socket.connected) {
@@ -96,8 +137,10 @@ function App() {
       socket.off('player-joined', onPlayerJoined);
       socket.off('player-left', onPlayerLeft);
       socket.off('room-updated', onRoomUpdated);
+      socket.off('game-started', onGameStarted);
+      socket.off('prompt-submitted', onPromptSubmitted);
     };
-  }, []);
+  }, [currentPlayerId]);
 
   const handleCreateRoom = useCallback((playerName: string) => {
     setError(null);
@@ -130,7 +173,9 @@ function App() {
   const handleLeaveRoom = useCallback(() => {
     socket.emit('leave-room', () => {
       setRoom(null);
+      setGameState(null);
       setPhase('home');
+      setHasSubmittedPrompt(false);
     });
   }, []);
 
@@ -142,12 +187,25 @@ function App() {
   }, [room, currentPlayerId]);
 
   const handleStartGame = useCallback(() => {
-    // TODO: Implement game start in US-014
-    console.log('Start game');
+    socket.emit('start-game', (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error ?? 'Failed to start game');
+      }
+    });
   }, []);
 
   const handleSetCategory = useCallback((category: CategorySelection) => {
     socket.emit('set-category', { category });
+  }, []);
+
+  const handleSubmitPrompt = useCallback((prompt: string) => {
+    socket.emit('submit-prompt', { prompt }, (response: { success: boolean; error?: string }) => {
+      if (response.success) {
+        setHasSubmittedPrompt(true);
+      } else {
+        setError(response.error ?? 'Failed to submit prompt');
+      }
+    });
   }, []);
 
   if (loading) {
@@ -158,6 +216,21 @@ function App() {
     );
   }
 
+  // Prompting phase
+  if (phase === 'prompting' && gameState?.currentRound && room) {
+    return (
+      <Prompting
+        theme={gameState.currentRound.themeText}
+        phaseEndTime={gameState.currentRound.phaseEndTime}
+        hasSubmitted={hasSubmittedPrompt}
+        submittedPlayerIds={gameState.currentRound.submittedPlayerIds}
+        totalPlayers={room.players.length}
+        onSubmitPrompt={handleSubmitPrompt}
+      />
+    );
+  }
+
+  // Lobby phase
   if (phase === 'lobby' && room) {
     return (
       <Lobby
@@ -171,6 +244,7 @@ function App() {
     );
   }
 
+  // Home phase
   return (
     <Home
       connected={connected}

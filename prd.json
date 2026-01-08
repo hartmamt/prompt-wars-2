@@ -113,7 +113,7 @@
         "Auto-submit when timer expires"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Core gameplay phase"
     },
     {

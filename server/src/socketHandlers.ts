@@ -7,8 +7,11 @@ import {
   canStartGame,
   updatePlayerReady,
   updateRoomCategory,
+  startGame,
+  submitPrompt,
+  getSubmittedPlayerIds,
 } from './roomManager.js';
-import type { Player, Room, CategorySelection } from './types.js';
+import type { Player, Room, CategorySelection, GamePhase } from './types.js';
 
 interface RoomResponse {
   code: string;
@@ -18,6 +21,18 @@ interface RoomResponse {
   category: CategorySelection;
 }
 
+interface GameStateResponse {
+  phase: GamePhase;
+  round: number;
+  totalRounds: number;
+  category: CategorySelection;
+  currentRound: {
+    themeText: string;
+    phaseEndTime: string;
+    submittedPlayerIds: string[];
+  } | null;
+}
+
 function roomToResponse(room: Room): RoomResponse {
   return {
     code: room.code,
@@ -25,6 +40,22 @@ function roomToResponse(room: Room): RoomResponse {
     hostId: room.hostId,
     canStart: canStartGame(room),
     category: room.gameState.category,
+  };
+}
+
+function gameStateToResponse(room: Room): GameStateResponse {
+  return {
+    phase: room.gameState.phase,
+    round: room.gameState.round,
+    totalRounds: room.gameState.totalRounds,
+    category: room.gameState.category,
+    currentRound: room.gameState.currentRound
+      ? {
+          themeText: room.gameState.currentRound.themeText,
+          phaseEndTime: room.gameState.currentRound.phaseEndTime.toISOString(),
+          submittedPlayerIds: getSubmittedPlayerIds(room),
+        }
+      : null,
   };
 }
 
@@ -93,6 +124,45 @@ export function setupSocketHandlers(io: SocketIOServer): void {
           room: roomToResponse(room),
         });
       }
+    });
+
+    // Start game (host only)
+    socket.on('start-game', (callback: (response: { success: boolean; error?: string }) => void) => {
+      const result = startGame(socket.id);
+
+      if (!result.success || !result.room) {
+        callback({ success: false, error: result.error });
+        return;
+      }
+
+      // Notify all players about game start
+      io.to(result.room.code).emit('game-started', {
+        gameState: gameStateToResponse(result.room),
+      });
+
+      callback({ success: true });
+    });
+
+    // Submit prompt
+    socket.on('submit-prompt', (data: { prompt: string }, callback: (response: { success: boolean; error?: string }) => void) => {
+      const result = submitPrompt(socket.id, data.prompt);
+
+      if (!result.success || !result.room) {
+        callback({ success: false, error: result.error });
+        return;
+      }
+
+      // Notify all players about prompt submission (just the ID, not the content)
+      io.to(result.room.code).emit('prompt-submitted', {
+        playerId: socket.id,
+        submittedPlayerIds: getSubmittedPlayerIds(result.room),
+        allSubmitted: result.allSubmitted,
+      });
+
+      callback({ success: true });
+
+      // If all players have submitted, we could trigger phase transition here
+      // For now, we'll let the timer handle it or a separate mechanism
     });
 
     // Disconnect handling

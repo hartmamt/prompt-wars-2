@@ -139,3 +139,27 @@
   - Category can only be changed in lobby phase
   - usedThemeIds Set added to track used themes per game session
 ---
+
+## 2026-01-07 - US-007
+- What was implemented:
+  - 90-second countdown timer with visual feedback
+  - Secret theme displayed prominently to all players
+  - Text input for prompt with 200 character limit
+  - Submit button sends prompt to server via submit-prompt event
+  - Visual indicator when prompt submitted (green confirmation card)
+  - Timer visible with minute:second format, pulses red in last 10 seconds
+  - Auto-submit when timer expires (if prompt has content)
+  - Submission progress indicators show how many players submitted
+- Files changed:
+  - server/src/types.ts (PlayerPrompt, RoundState, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH)
+  - server/src/roomManager.ts (startGame, submitPrompt, getSubmittedPlayerIds)
+  - server/src/socketHandlers.ts (start-game, submit-prompt handlers, gameStateToResponse)
+  - client/src/types.ts (CurrentRoundState, GameState, GamePhase)
+  - client/src/components/Prompting.tsx (new component)
+  - client/src/App.tsx (gameState, hasSubmittedPrompt state, handlers, phase routing)
+- **Learnings for future iterations:**
+  - phaseEndTime stored as Date on server, sent as ISO string to client
+  - currentRound null check needed before accessing round state
+  - Timer effect depends on phaseEndTime, hasSubmitted, prompt for auto-submit
+  - Prompts stored in Map<string, PlayerPrompt> keyed by socket ID
+---

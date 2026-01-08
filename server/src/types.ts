@@ -27,13 +27,31 @@ export type CategorySelection =
   | 'Art Style Twists'
   | 'Relatable Moments';
 
+export interface PlayerPrompt {
+  playerId: string;
+  prompt: string;
+  submittedAt: Date;
+}
+
+export interface RoundState {
+  themeId: string;
+  themeText: string;
+  prompts: Map<string, PlayerPrompt>;
+  phaseStartTime: Date;
+  phaseEndTime: Date;
+}
+
 export interface GameState {
   phase: GamePhase;
   round: number;
   totalRounds: number;
   category: CategorySelection;
   usedThemeIds: Set<string>;
+  currentRound: RoundState | null;
 }
+
+export const PROMPTING_DURATION_MS = 90 * 1000; // 90 seconds
+export const PROMPT_MAX_LENGTH = 200;
 
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;

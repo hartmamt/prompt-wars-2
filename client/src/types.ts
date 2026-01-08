@@ -37,3 +37,17 @@ export interface RoomState {
 }
 
 export type GamePhase = 'home' | 'lobby' | 'prompting' | 'generating' | 'voting' | 'results' | 'final';
+
+export interface CurrentRoundState {
+  themeText: string;
+  phaseEndTime: string;
+  submittedPlayerIds: string[];
+}
+
+export interface GameState {
+  phase: GamePhase;
+  round: number;
+  totalRounds: number;
+  category: CategorySelection;
+  currentRound: CurrentRoundState | null;
+}
