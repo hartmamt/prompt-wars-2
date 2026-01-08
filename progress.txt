@@ -7,6 +7,9 @@
 - Socket.io client in client/src/socket.ts with autoConnect: false - call connectSocket() manually
 - Discord SDK setup in client/src/discord.ts - use isInDiscord() to check if in Discord iframe
 - Tailwind custom colors: prompt-purple, prompt-pink, prompt-green, prompt-black
+- Room management in server/src/roomManager.ts - use exported functions, not direct Map access
+- Socket handlers in server/src/socketHandlers.ts - all socket events defined here
+- Player/Room types in server/src/types.ts - MIN_PLAYERS=2, MAX_PLAYERS=8
 
 ---
 
@@ -55,4 +58,25 @@
   - socket.autoConnect is false by default - must call connectSocket() in app init
   - Use isInDiscord() to detect Discord iframe context
   - Tailwind extends theme.colors for custom prompt-* colors
+---
+
+## 2026-01-07 - US-003
+- What was implemented:
+  - 4-character room codes (uppercase letters + digits, no ambiguous chars)
+  - create-room socket event with callback
+  - join-room socket event with code validation
+  - 2-8 players per room enforced
+  - Real-time player list updates (player-joined, player-left, room-updated events)
+  - Host designation (first player is host)
+  - Player disconnect handling with automatic host reassignment
+- Files changed:
+  - server/src/types.ts (Player, Room, GameState types)
+  - server/src/roomManager.ts (all room logic)
+  - server/src/socketHandlers.ts (socket event handlers)
+  - server/src/index.ts (integrated socket handlers)
+- **Learnings for future iterations:**
+  - Room codes exclude ambiguous chars (0, O, 1, I, L) for readability
+  - Socket callbacks use pattern: callback({ success: boolean, room?: RoomResponse, error?: string })
+  - playerToRoom Map tracks socket ID -> room code for fast lookups
+  - Room deletion happens automatically when last player leaves
 ---
