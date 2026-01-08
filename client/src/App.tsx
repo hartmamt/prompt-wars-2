@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { socket, connectSocket } from './socket';
 import { setupDiscord, isInDiscord, type DiscordUser } from './discord';
 import { Home } from './components/Home';
@@ -8,6 +8,7 @@ import { Generating } from './components/Generating';
 import { Voting } from './components/Voting';
 import { Results } from './components/Results';
 import { FinalResults } from './components/FinalResults';
+import { audioEngine } from './audioEngine';
 import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
 
 interface RoomResponse {
@@ -140,6 +141,8 @@ function App() {
   const [resultsTheme, setResultsTheme] = useState('');
   const [resultsRoundNumber, setResultsRoundNumber] = useState(1);
   const [resultsTotalRounds, setResultsTotalRounds] = useState(3);
+  const [audioMuted, setAudioMuted] = useState(false);
+  const audioInitializedRef = useRef(false);
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -421,6 +424,19 @@ function App() {
     return `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=256`;
   }, [discordUser]);
 
+  // Initialize audio on first user interaction
+  const handleInitAudio = useCallback(() => {
+    if (audioInitializedRef.current) return;
+    audioInitializedRef.current = true;
+    void audioEngine.init();
+  }, []);
+
+  // Toggle mute state
+  const handleToggleMute = useCallback(() => {
+    const newMuted = audioEngine.toggleMute();
+    setAudioMuted(newMuted);
+  }, []);
+
   const handleSubmitPrompt = useCallback((prompt: string) => {
     socket.emit('submit-prompt', { prompt }, (response: { success: boolean; error?: string }) => {
       if (response.success) {
@@ -469,9 +485,23 @@ function App() {
     });
   }, []);
 
+  // Mute button component
+  const MuteButton = () => (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleToggleMute();
+      }}
+      className="fixed bottom-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border-2 border-prompt-purple bg-prompt-black/90 text-lg transition-all hover:bg-prompt-purple/20"
+      aria-label={audioMuted ? 'Unmute' : 'Mute'}
+    >
+      {audioMuted ? '🔇' : '🔊'}
+    </button>
+  );
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-prompt-black">
+      <div className="flex min-h-screen items-center justify-center bg-prompt-black" onClick={handleInitAudio}>
         <div className="text-prompt-purple text-xl">Loading...</div>
       </div>
     );
@@ -480,25 +510,31 @@ function App() {
   // Prompting phase
   if (phase === 'prompting' && gameState?.currentRound && room) {
     return (
-      <Prompting
-        theme={gameState.currentRound.themeText}
-        phaseEndTime={gameState.currentRound.phaseEndTime}
-        hasSubmitted={hasSubmittedPrompt}
-        submittedPlayerIds={gameState.currentRound.submittedPlayerIds}
-        totalPlayers={room.players.length}
-        onSubmitPrompt={handleSubmitPrompt}
-      />
+      <div onClick={handleInitAudio}>
+        <Prompting
+          theme={gameState.currentRound.themeText}
+          phaseEndTime={gameState.currentRound.phaseEndTime}
+          hasSubmitted={hasSubmittedPrompt}
+          submittedPlayerIds={gameState.currentRound.submittedPlayerIds}
+          totalPlayers={room.players.length}
+          onSubmitPrompt={handleSubmitPrompt}
+        />
+        <MuteButton />
+      </div>
     );
   }
 
   // Generating phase
   if (phase === 'generating') {
     return (
-      <Generating
-        generatedCount={generatedCount}
-        totalCount={totalImagesToGenerate}
-        hasError={hasGenerationError}
-      />
+      <div onClick={handleInitAudio}>
+        <Generating
+          generatedCount={generatedCount}
+          totalCount={totalImagesToGenerate}
+          hasError={hasGenerationError}
+        />
+        <MuteButton />
+      </div>
     );
   }
 
@@ -510,16 +546,19 @@ function App() {
     );
 
     return (
-      <Voting
-        matchup={currentMatchup}
-        currentPlayerId={currentPlayerId}
-        votersWhoVoted={votersWhoVoted}
-        totalVoters={eligibleVoters.length}
-        hasVoted={hasVoted}
-        onCastVote={handleCastVote}
-        leaderboard={leaderboard}
-        recentScoreChanges={recentScoreChanges}
-      />
+      <div onClick={handleInitAudio}>
+        <Voting
+          matchup={currentMatchup}
+          currentPlayerId={currentPlayerId}
+          votersWhoVoted={votersWhoVoted}
+          totalVoters={eligibleVoters.length}
+          hasVoted={hasVoted}
+          onCastVote={handleCastVote}
+          leaderboard={leaderboard}
+          recentScoreChanges={recentScoreChanges}
+        />
+        <MuteButton />
+      </div>
     );
   }
 
@@ -528,16 +567,19 @@ function App() {
     const isHost = room.players.find((p) => p.id === currentPlayerId)?.isHost ?? false;
 
     return (
-      <Results
-        theme={resultsTheme}
-        roundNumber={resultsRoundNumber}
-        totalRounds={resultsTotalRounds}
-        roundWinner={roundWinner}
-        leaderboard={leaderboard}
-        currentPlayerId={currentPlayerId}
-        onContinue={handleNextRound}
-        isHost={isHost}
-      />
+      <div onClick={handleInitAudio}>
+        <Results
+          theme={resultsTheme}
+          roundNumber={resultsRoundNumber}
+          totalRounds={resultsTotalRounds}
+          roundWinner={roundWinner}
+          leaderboard={leaderboard}
+          currentPlayerId={currentPlayerId}
+          onContinue={handleNextRound}
+          isHost={isHost}
+        />
+        <MuteButton />
+      </div>
     );
   }
 
@@ -546,40 +588,49 @@ function App() {
     const isHost = room.players.find((p) => p.id === currentPlayerId)?.isHost ?? false;
 
     return (
-      <FinalResults
-        leaderboard={leaderboard}
-        currentPlayerId={currentPlayerId}
-        onPlayAgain={handlePlayAgain}
-        onReturnHome={handleReturnHome}
-        isHost={isHost}
-      />
+      <div onClick={handleInitAudio}>
+        <FinalResults
+          leaderboard={leaderboard}
+          currentPlayerId={currentPlayerId}
+          onPlayAgain={handlePlayAgain}
+          onReturnHome={handleReturnHome}
+          isHost={isHost}
+        />
+        <MuteButton />
+      </div>
     );
   }
 
   // Lobby phase
   if (phase === 'lobby' && room) {
     return (
-      <Lobby
-        room={room}
-        currentPlayerId={currentPlayerId}
-        discordAvatarUrl={getDiscordAvatarUrl()}
-        onStartGame={handleStartGame}
-        onLeaveRoom={handleLeaveRoom}
-        onToggleReady={handleToggleReady}
-        onSetCategory={handleSetCategory}
-        onAvatarChange={handleAvatarChange}
-      />
+      <div onClick={handleInitAudio}>
+        <Lobby
+          room={room}
+          currentPlayerId={currentPlayerId}
+          discordAvatarUrl={getDiscordAvatarUrl()}
+          onStartGame={handleStartGame}
+          onLeaveRoom={handleLeaveRoom}
+          onToggleReady={handleToggleReady}
+          onSetCategory={handleSetCategory}
+          onAvatarChange={handleAvatarChange}
+        />
+        <MuteButton />
+      </div>
     );
   }
 
   // Home phase
   return (
-    <Home
-      connected={connected}
-      onCreateRoom={handleCreateRoom}
-      onJoinRoom={handleJoinRoom}
-      error={error}
-    />
+    <div onClick={handleInitAudio}>
+      <Home
+        connected={connected}
+        onCreateRoom={handleCreateRoom}
+        onJoinRoom={handleJoinRoom}
+        error={error}
+      />
+      <MuteButton />
+    </div>
   );
 }
 

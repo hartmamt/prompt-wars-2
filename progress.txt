@@ -504,3 +504,29 @@
   - Consistent sizing patterns: h-6/w-6 for small, h-8/w-8 for medium, h-10/w-10 for large with md: variants
   - rounded-full + object-cover for circular avatar images
 ---
+
+## 2026-01-08 - US-022
+- What was implemented:
+  - AudioEngine class with full Web Audio API wrapper
+  - play() method for one-shot sounds with ADSR envelope
+  - startLoop()/stopLoop() methods for continuous sounds
+  - Global mute toggle with setMuted()/getMuted()/toggleMute()
+  - Parameter randomization (2% variance) for organic feel
+  - Automatic node cleanup in onended callback
+  - Graceful fallback when Web Audio unavailable (isAvailable check)
+  - Audio initialization on first user interaction via onClick on wrapper divs
+  - MuteButton component in App.tsx (fixed bottom-right, purple border)
+  - Works in Discord Activity iframe with context resume handling
+  - dispose() method for full cleanup
+  - registerSound()/playSound() for named sound definitions
+- Files changed:
+  - client/src/audioEngine.ts (new file - AudioEngine class and singleton)
+  - client/src/App.tsx (audio integration, MuteButton, onClick handlers)
+- **Learnings for future iterations:**
+  - Web Audio requires user interaction before context can be used (Chrome policy)
+  - Use AudioContext.resume() when context is suspended
+  - ADSR envelope: attack → decay → sustain (hold) → release
+  - Use onended callback for automatic node cleanup
+  - Singleton pattern works well for audio engine (one context per page)
+  - webkitAudioContext needed for Safari compatibility
+---

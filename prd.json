@@ -343,7 +343,7 @@
         "Works in Discord Activity iframe"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "Audio infrastructure"
     },
     {
