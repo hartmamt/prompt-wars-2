@@ -313,3 +313,26 @@
   - game-reset event broadcasts room state so all clients return to lobby together
   - handleReturnHome uses existing leave-room event for consistent cleanup
 ---
+
+## 2026-01-07 - US-014
+- What was implemented:
+  - Enhanced player disconnect handling during active game
+  - If player count drops below MIN_PLAYERS (2), game ends automatically
+  - game-ended socket event notifies remaining players with reason message
+  - LeaveRoomResult interface now includes gameEnded flag
+  - Game resets to lobby phase when ended early
+  - All player ready statuses reset on game end
+  - State machine verified: lobby → prompting → generating → voting → results → final
+  - 3 rounds per game confirmed in gameState.totalRounds
+  - Automatic phase transitions already implemented through previous stories
+  - All clients sync via existing socket events
+- Files changed:
+  - server/src/roomManager.ts (LeaveRoomResult interface, enhanced leaveRoom)
+  - server/src/socketHandlers.ts (game-ended event emission)
+  - client/src/App.tsx (GameEndedEvent interface, onGameEnded handler)
+- **Learnings for future iterations:**
+  - leaveRoom checks wasInGame to detect mid-game disconnects
+  - When game ends due to disconnect, error state shows reason to users
+  - Most US-014 functionality was already implemented in prior stories
+  - This story mainly added robust edge case handling for player disconnects
+---

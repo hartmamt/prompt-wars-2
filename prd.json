@@ -219,7 +219,7 @@
         "Game mode: Classic (same theme for all)"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Orchestrates entire game lifecycle"
     },
     {
