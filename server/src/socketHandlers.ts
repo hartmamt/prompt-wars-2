@@ -20,6 +20,7 @@ import {
   advanceMatchup,
   getCurrentMatchupVotes,
   getPlayerName,
+  getPlayerAvatar,
   getRoomBySocketId,
   calculateMatchupScores,
   getLeaderboard,
@@ -261,12 +262,16 @@ export function setupSocketHandlers(io: SocketIOServer): void {
           // Emit next matchup
           const player1Name = getPlayerName(room, advanceResult.nextMatchup.player1Id);
           const player2Name = getPlayerName(room, advanceResult.nextMatchup.player2Id);
+          const player1Avatar = getPlayerAvatar(room, advanceResult.nextMatchup.player1Id);
+          const player2Avatar = getPlayerAvatar(room, advanceResult.nextMatchup.player2Id);
 
           io.to(room.code).emit('next-matchup', {
             matchup: {
               ...advanceResult.nextMatchup,
               player1Name,
               player2Name,
+              player1Avatar,
+              player2Avatar,
             },
           });
         }
@@ -328,12 +333,16 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       } else if (advanceResult.nextMatchup) {
         const player1Name = getPlayerName(room, advanceResult.nextMatchup.player1Id);
         const player2Name = getPlayerName(room, advanceResult.nextMatchup.player2Id);
+        const player1Avatar = getPlayerAvatar(room, advanceResult.nextMatchup.player1Id);
+        const player2Avatar = getPlayerAvatar(room, advanceResult.nextMatchup.player2Id);
 
         io.to(room.code).emit('next-matchup', {
           matchup: {
             ...advanceResult.nextMatchup,
             player1Name,
             player2Name,
+            player1Avatar,
+            player2Avatar,
           },
         });
       }
@@ -497,9 +506,11 @@ function handleVotingPhase(io: SocketIOServer, roomCode: string): void {
 
   const room = result.room;
 
-  // Get player names for the matchup
+  // Get player names and avatars for the matchup
   const player1Name = getPlayerName(room, result.matchup.player1Id);
   const player2Name = getPlayerName(room, result.matchup.player2Id);
+  const player1Avatar = getPlayerAvatar(room, result.matchup.player1Id);
+  const player2Avatar = getPlayerAvatar(room, result.matchup.player2Id);
 
   // Notify all players that voting has started
   io.to(roomCode).emit('voting-started', {
@@ -508,6 +519,8 @@ function handleVotingPhase(io: SocketIOServer, roomCode: string): void {
       ...result.matchup,
       player1Name,
       player2Name,
+      player1Avatar,
+      player2Avatar,
       matchupIndex: 0,
       totalMatchups: room.gameState.currentRound?.matchups.length ?? 0,
     },

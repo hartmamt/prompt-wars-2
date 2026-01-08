@@ -327,7 +327,7 @@
         "Fallback to Discord avatar if no custom avatar"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Avatar persistence"
     },
     {

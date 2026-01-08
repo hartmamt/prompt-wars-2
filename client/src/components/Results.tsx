@@ -3,6 +3,7 @@ import type { LeaderboardEntry } from '../types';
 interface RoundWinner {
   playerId: string;
   playerName: string;
+  playerAvatar: string | null;
   prompt: string;
   imageBase64: string | null;
   votesReceived: number;
@@ -62,8 +63,15 @@ export function Results({
             <div className="rounded-lg border-2 border-prompt-green bg-gray-900 p-4 md:p-6">
               {/* Winner name and votes */}
               <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 md:gap-3">
                   <span className="text-2xl md:text-3xl">👑</span>
+                  {roundWinner.playerAvatar ? (
+                    <img src={roundWinner.playerAvatar} alt="" className="h-10 w-10 rounded-full object-cover md:h-12 md:w-12" />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700 text-lg font-bold md:h-12 md:w-12">
+                      {roundWinner.playerName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <span className="text-xl font-bold text-prompt-green md:text-2xl">
                     {roundWinner.playerName}
                   </span>
@@ -127,6 +135,13 @@ export function Results({
                     >
                       {entry.rank}
                     </span>
+                    {entry.playerAvatar ? (
+                      <img src={entry.playerAvatar} alt="" className="h-8 w-8 rounded-full object-cover md:h-10 md:w-10" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-bold md:h-10 md:w-10">
+                        {entry.playerName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div>
                       <div className="font-semibold text-white md:text-lg">
                         {entry.playerName}

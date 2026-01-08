@@ -1,17 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { LeaderboardEntry, ScoreChange } from '../types';
-
-interface MatchupData {
-  player1Id: string;
-  player2Id: string;
-  player1Name: string;
-  player2Name: string;
-  player1Image: string | null;
-  player2Image: string | null;
-  endTime: string;
-  matchupIndex: number;
-  totalMatchups: number;
-}
+import type { LeaderboardEntry, MatchupData, ScoreChange } from '../types';
 
 interface VotingProps {
   matchup: MatchupData;
@@ -93,10 +81,28 @@ export function Voting({
 
       {/* VS Banner */}
       <div className="mb-4 text-center">
-        <div className="inline-block rounded-lg border-2 border-prompt-pink bg-prompt-pink/20 px-6 py-2">
-          <span className="text-2xl font-bold text-white">
-            {matchup.player1Name} ⚔️ {matchup.player2Name}
-          </span>
+        <div className="inline-flex items-center gap-3 rounded-lg border-2 border-prompt-pink bg-prompt-pink/20 px-6 py-2">
+          <div className="flex items-center gap-2">
+            {matchup.player1Avatar ? (
+              <img src={matchup.player1Avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-bold">
+                {matchup.player1Name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-xl font-bold text-white md:text-2xl">{matchup.player1Name}</span>
+          </div>
+          <span className="text-2xl">⚔️</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold text-white md:text-2xl">{matchup.player2Name}</span>
+            {matchup.player2Avatar ? (
+              <img src={matchup.player2Avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-bold">
+                {matchup.player2Name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -275,6 +281,13 @@ export function Voting({
               >
                 <div className="flex items-center gap-2">
                   <span className="w-6 text-center text-sm text-gray-500 md:text-base">#{entry.rank}</span>
+                  {entry.playerAvatar ? (
+                    <img src={entry.playerAvatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-700 text-xs font-bold">
+                      {entry.playerName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <span className="text-sm text-white md:text-base">{entry.playerName}</span>
                 </div>
                 <span className="font-mono text-sm font-bold text-prompt-green md:text-base">

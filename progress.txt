@@ -475,3 +475,32 @@
   - Discord CDN avatar URL format: https://cdn.discordapp.com/avatars/{userId}/{avatarHash}.png
   - updatePlayerAvatar function already existed in roomManager.ts
 ---
+
+## 2026-01-08 - US-021
+- What was implemented:
+  - Avatar display throughout all game phases
+  - getPlayerAvatar helper function in roomManager.ts for consistent avatar retrieval
+  - Server sends player1Avatar/player2Avatar in matchup data for voting phase
+  - MatchupData type updated with avatar fields (client and server)
+  - Voting.tsx VS Banner shows player avatars (fallback to initials)
+  - Voting.tsx mini leaderboard shows avatars for all players
+  - Results.tsx winner display shows avatar with green border
+  - Results.tsx leaderboard shows avatars for all ranked players
+  - FinalResults.tsx winner celebration shows large avatar with border
+  - FinalResults.tsx other players grid shows avatars
+  - LeaderboardEntry interface updated with playerAvatar (server and client)
+  - RoundWinnerData includes playerAvatar from getRoundWinner
+  - All fallbacks show first letter of player name in styled div
+- Files changed:
+  - server/src/roomManager.ts (getPlayerAvatar, avatar in LeaderboardEntry, RoundWinnerData)
+  - server/src/socketHandlers.ts (avatars in matchup data for voting events)
+  - client/src/types.ts (avatars in MatchupData, LeaderboardEntry)
+  - client/src/components/Voting.tsx (removed local MatchupData, imported from types, avatars in VS banner and leaderboard)
+  - client/src/components/Results.tsx (avatar in winner display and leaderboard)
+  - client/src/components/FinalResults.tsx (avatar in winner section and other players)
+- **Learnings for future iterations:**
+  - Components should import shared types from types.ts instead of defining local copies
+  - Avatar fallbacks use player name's first character uppercase in a styled circle div
+  - Consistent sizing patterns: h-6/w-6 for small, h-8/w-8 for medium, h-10/w-10 for large with md: variants
+  - rounded-full + object-cover for circular avatar images
+---

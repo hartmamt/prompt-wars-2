@@ -90,6 +90,7 @@ interface MatchupResultEvent {
 interface RoundWinner {
   playerId: string;
   playerName: string;
+  playerAvatar: string | null;
   prompt: string;
   imageBase64: string | null;
   votesReceived: number;

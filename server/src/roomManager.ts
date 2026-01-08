@@ -666,6 +666,11 @@ export function getPlayerName(room: Room, playerId: string): string {
   return player?.name ?? 'Unknown';
 }
 
+export function getPlayerAvatar(room: Room, playerId: string): string | null {
+  const player = room.players.get(playerId);
+  return player?.avatar ?? null;
+}
+
 export interface MatchupResult {
   winnerId: string | null;  // null if tie
   loserId: string | null;
@@ -749,6 +754,7 @@ export function calculateMatchupScores(room: Room): MatchupResult | null {
 export interface LeaderboardEntry {
   playerId: string;
   playerName: string;
+  playerAvatar: string | null;
   score: number;
   roundWins: number;
   rank: number;
@@ -759,6 +765,7 @@ export function getLeaderboard(room: Room): LeaderboardEntry[] {
     .map((score) => ({
       playerId: score.playerId,
       playerName: getPlayerName(room, score.playerId),
+      playerAvatar: getPlayerAvatar(room, score.playerId),
       score: score.score,
       roundWins: score.roundWins,
       rank: 0,
@@ -776,6 +783,7 @@ export function getLeaderboard(room: Room): LeaderboardEntry[] {
 export interface RoundWinnerData {
   playerId: string;
   playerName: string;
+  playerAvatar: string | null;
   prompt: string;
   imageBase64: string | null;
   totalVotesReceived: number;
@@ -813,6 +821,7 @@ export function getRoundWinner(room: Room): RoundWinnerData | null {
   return {
     playerId: winnerId,
     playerName: getPlayerName(room, winnerId),
+    playerAvatar: getPlayerAvatar(room, winnerId),
     prompt: prompt?.prompt ?? '',
     imageBase64: image?.imageBase64 ?? null,
     totalVotesReceived: maxVotes,

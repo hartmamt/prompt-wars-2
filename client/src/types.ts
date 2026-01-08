@@ -49,6 +49,8 @@ export interface MatchupData {
   player2Id: string;
   player1Name: string;
   player2Name: string;
+  player1Avatar: string | null;
+  player2Avatar: string | null;
   player1Image: string | null;
   player2Image: string | null;
   endTime: string;
@@ -59,6 +61,7 @@ export interface MatchupData {
 export interface LeaderboardEntry {
   playerId: string;
   playerName: string;
+  playerAvatar: string | null;
   score: number;
   roundWins: number;
   rank: number;

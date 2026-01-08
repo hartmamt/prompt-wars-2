@@ -69,6 +69,13 @@ export function FinalResults({
             {/* Winner content */}
             <div className="relative text-center">
               <div className="mb-2 text-6xl md:text-7xl">👑</div>
+              {winner.playerAvatar ? (
+                <img src={winner.playerAvatar} alt="" className="mx-auto mb-3 h-20 w-20 rounded-full border-4 border-prompt-green object-cover md:h-28 md:w-28" />
+              ) : (
+                <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border-4 border-prompt-green bg-gray-700 text-3xl font-bold md:h-28 md:w-28 md:text-4xl">
+                  {winner.playerName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-prompt-green md:text-sm">
                 {getTitle(1)}
               </div>
@@ -116,6 +123,13 @@ export function FinalResults({
                 >
                   {entry.rank}
                 </span>
+                {entry.playerAvatar ? (
+                  <img src={entry.playerAvatar} alt="" className="h-10 w-10 rounded-full object-cover md:h-12 md:w-12" />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700 text-lg font-bold md:h-12 md:w-12">
+                    {entry.playerName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <div className="font-semibold text-white md:text-lg">
                     {entry.playerName}
