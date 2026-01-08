@@ -1068,3 +1068,23 @@ to a capable provider.
   - Token changes play earn/spend sounds
 - Integrated modifier reveal sound into Results.tsx
 - All typecheck and lint passing
+
+
+## US-037 & US-038: Render Deployment (Configuration Ready)
+- Created render.yaml blueprint file with:
+  - Server web service configuration (Node.js)
+  - Build command: cd server && npm ci && npm run build
+  - Start command: cd server && npm start
+  - Health check path: /health
+  - Environment variables placeholders (GEMINI_API_KEY, FAL_API_KEY, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET)
+  - Client static site configuration
+  - Build command: cd client && npm ci && npm run build
+  - Publish path: client/dist
+  - VITE_SOCKET_URL linked to server
+  - VITE_DISCORD_CLIENT_ID placeholder
+- NOTE: Actual deployment requires user to:
+  1. Connect GitHub repo to Render
+  2. Import blueprint (render.yaml)
+  3. Set environment variables with actual API keys
+  4. Trigger deployment
+- Server and client builds verified passing
