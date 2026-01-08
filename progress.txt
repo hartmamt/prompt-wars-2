@@ -288,3 +288,28 @@
   - startNextRound() resets round data and picks new theme using usedThemeIds
   - Results component needs isHost prop to control who can continue
 ---
+
+## 2026-01-07 - US-013
+- What was implemented:
+  - FinalResults.tsx component with winner celebration
+  - Winner announced as "SUPREME PROMPT OVERLORD" with crown emoji
+  - Decorative emojis for celebration effect (sparkles, trophy, confetti)
+  - Affectionate titles for other ranks: "ALMOST HAD IT", "BRONZE AGE ARTIST", "PARTICIPATION TROPHY", etc.
+  - Full leaderboard showing all players with scores and round wins
+  - Current player highlighted in leaderboard
+  - Host sees "PLAY AGAIN" and "Return to Home" buttons
+  - Non-hosts see "Waiting for host to choose next action..."
+  - Server: resetGame() function resets state while keeping players
+  - Socket events: play-again (host triggers), game-reset (broadcast to all)
+  - Category selection preserved when playing again
+- Files changed:
+  - client/src/components/FinalResults.tsx (new component)
+  - client/src/App.tsx (final phase handling, play-again, return home)
+  - server/src/roomManager.ts (resetGame function)
+  - server/src/socketHandlers.ts (play-again handler, game-reset event)
+- **Learnings for future iterations:**
+  - resetGame preserves room.gameState.category so players don't have to re-select
+  - resetGame resets all player isReady status to false
+  - game-reset event broadcasts room state so all clients return to lobby together
+  - handleReturnHome uses existing leave-room event for consistent cleanup
+---

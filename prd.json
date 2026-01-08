@@ -204,7 +204,7 @@
         "Return to lobby option"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Game conclusion"
     },
     {
