@@ -9,6 +9,7 @@ import { Voting } from './components/Voting';
 import { Results } from './components/Results';
 import { FinalResults } from './components/FinalResults';
 import { audioEngine } from './audioEngine';
+import { playPhaseTransition } from './sounds';
 import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
 
 interface RoomResponse {
@@ -143,6 +144,7 @@ function App() {
   const [resultsTotalRounds, setResultsTotalRounds] = useState(3);
   const [audioMuted, setAudioMuted] = useState(false);
   const audioInitializedRef = useRef(false);
+  const prevPhaseRef = useRef<GamePhase>('home');
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -354,6 +356,19 @@ function App() {
       socket.off('game-ended', onGameEnded);
     };
   }, [currentPlayerId]);
+
+  // Play phase transition sound when entering game phases
+  useEffect(() => {
+    const gamePhases: GamePhase[] = ['prompting', 'generating', 'voting', 'results', 'final'];
+    const isEnteringGamePhase = gamePhases.includes(phase);
+    const wasInDifferentPhase = prevPhaseRef.current !== phase;
+
+    if (isEnteringGamePhase && wasInDifferentPhase) {
+      playPhaseTransition();
+    }
+
+    prevPhaseRef.current = phase;
+  }, [phase]);
 
   const handleCreateRoom = useCallback((playerName: string) => {
     setError(null);

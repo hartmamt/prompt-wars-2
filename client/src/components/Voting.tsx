@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { LeaderboardEntry, MatchupData, ScoreChange } from '../types';
-import { playClick, playHover, playSuccess } from '../sounds';
+import { playClick, playHover, playCountdownTick, playVsSting, playVoteCast } from '../sounds';
 
 interface VotingProps {
   matchup: MatchupData;
@@ -25,6 +25,8 @@ export function Voting({
 }: VotingProps) {
   const [timeLeft, setTimeLeft] = useState(60);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
+  const prevTimeLeftRef = useRef(60);
+  const playedVsStingRef = useRef<number | null>(null);
 
   // Calculate time left
   useEffect(() => {
@@ -33,6 +35,13 @@ export function Voting({
     const updateTimer = () => {
       const now = Date.now();
       const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+
+      // Play countdown tick when time decreases (last 15 seconds for voting)
+      if (remaining < prevTimeLeftRef.current && remaining > 0 && remaining <= 15) {
+        playCountdownTick(remaining);
+      }
+      prevTimeLeftRef.current = remaining;
+
       setTimeLeft(remaining);
     };
 
@@ -42,9 +51,16 @@ export function Voting({
     return () => clearInterval(interval);
   }, [matchup.endTime]);
 
-  // Reset state when matchup changes
+  // Reset state and play VS sting when matchup changes
   useEffect(() => {
     setSelectedVote(null);
+    prevTimeLeftRef.current = 60;
+
+    // Play VS sting only once per matchup
+    if (playedVsStingRef.current !== matchup.matchupIndex) {
+      playedVsStingRef.current = matchup.matchupIndex;
+      playVsSting();
+    }
   }, [matchup.matchupIndex]);
 
   const handleVote = useCallback((playerId: string) => {
@@ -52,7 +68,7 @@ export function Voting({
     if (playerId === currentPlayerId) return;
 
     void playClick();
-    playSuccess();
+    playVoteCast();
     setSelectedVote(playerId);
     onCastVote(playerId);
   }, [hasVoted, selectedVote, currentPlayerId, onCastVote]);

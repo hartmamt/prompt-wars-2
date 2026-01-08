@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { playImageReveal } from '../sounds';
 
 interface GeneratingProps {
   generatedCount: number;
@@ -32,6 +33,15 @@ const LOADING_MESSAGES = [
 export function Generating({ generatedCount, totalCount, hasError }: GeneratingProps) {
   const [messageIndex, setMessageIndex] = useState(0);
   const [fakeProgress, setFakeProgress] = useState(0);
+  const prevGeneratedCountRef = useRef(0);
+
+  // Play sound when an image is generated
+  useEffect(() => {
+    if (generatedCount > prevGeneratedCountRef.current) {
+      playImageReveal();
+    }
+    prevGeneratedCountRef.current = generatedCount;
+  }, [generatedCount]);
 
   // Rotate loading messages
   useEffect(() => {

@@ -560,3 +560,39 @@
   - WaveShaper for distortion using tanh curve
   - Use void for async calls in event handlers: onClick={() => void playClick()}
 ---
+
+## 2026-01-08 - US-024
+- What was implemented:
+  - Game phase sounds in sounds.ts module:
+    - playCountdownTick(secondsRemaining): pitch drops as time decreases, tense in last 5 seconds
+    - playPhaseTransition(): bass drop with glitch stutter effect (rapid oscillator bursts)
+    - playThemeReveal(): rapid glitchy 'decrypting' sound (fast frequency sweeps)
+    - playPromptSubmit(): mechanical lock-in sound with harmonic overtones
+    - playImageReveal(): heavy impact bass thump (low frequency with quick decay)
+    - playVsSting(): fighting game flourish chord (A3, C4, E4, G#4 sawtooth waves)
+    - playVoteCast(): chunky confirmation (tri-tone progression with lowpass filter)
+  - Prompting.tsx integration:
+    - playThemeReveal() on mount when theme becomes visible
+    - playCountdownTick() in last 30 seconds of timer
+    - playPromptSubmit() replaces playSuccess() on submit
+  - Voting.tsx integration:
+    - playVsSting() when each matchup starts
+    - playCountdownTick() in last 15 seconds of voting timer
+    - playVoteCast() replaces playSuccess() on vote cast
+  - Generating.tsx integration:
+    - playImageReveal() when generatedCount increments
+  - App.tsx integration:
+    - playPhaseTransition() when entering any game phase (prompting, generating, voting, results, final)
+    - prevPhaseRef tracks phase changes
+- Files changed:
+  - client/src/sounds.ts (added 7 game phase sound functions)
+  - client/src/components/Prompting.tsx (theme reveal, countdown tick, prompt submit sounds)
+  - client/src/components/Voting.tsx (VS sting, countdown tick, vote cast sounds)
+  - client/src/components/Generating.tsx (image reveal sound)
+  - client/src/App.tsx (phase transition sounds)
+- **Learnings for future iterations:**
+  - useRef to track previous values (prevTimeLeftRef, prevPhaseRef) for detecting changes
+  - Sound playback refs (hasPlayedThemeReveal, playedVsStingRef) prevent duplicate sounds
+  - Countdown sounds should only play in final portion of timer (30s for prompting, 15s for voting)
+  - Phase transitions include lobby→prompting but not home→lobby
+---

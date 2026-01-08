@@ -373,7 +373,7 @@
         "Vote cast: chunky confirmation"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "Game event audio"
     },
     {

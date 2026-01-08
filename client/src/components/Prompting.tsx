@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { playClick, playHover, playSuccess } from '../sounds';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { playClick, playHover, playCountdownTick, playThemeReveal, playPromptSubmit } from '../sounds';
 
 interface PromptingProps {
   theme: string;
@@ -22,6 +22,16 @@ export function Prompting({
 }: PromptingProps) {
   const [prompt, setPrompt] = useState('');
   const [timeLeft, setTimeLeft] = useState(90);
+  const prevTimeLeftRef = useRef(90);
+  const hasPlayedThemeReveal = useRef(false);
+
+  // Play theme reveal sound on mount
+  useEffect(() => {
+    if (!hasPlayedThemeReveal.current) {
+      hasPlayedThemeReveal.current = true;
+      playThemeReveal();
+    }
+  }, []);
 
   // Calculate and update time left
   useEffect(() => {
@@ -30,6 +40,13 @@ export function Prompting({
     const updateTimer = () => {
       const now = Date.now();
       const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+
+      // Play countdown tick when time decreases
+      if (remaining < prevTimeLeftRef.current && remaining > 0 && remaining <= 30) {
+        playCountdownTick(remaining);
+      }
+      prevTimeLeftRef.current = remaining;
+
       setTimeLeft(remaining);
 
       // Auto-submit when timer expires
@@ -47,7 +64,7 @@ export function Prompting({
   const handleSubmit = useCallback(() => {
     if (prompt.trim() && !hasSubmitted) {
       void playClick();
-      playSuccess();
+      playPromptSubmit();
       onSubmitPrompt(prompt.trim());
     }
   }, [prompt, hasSubmitted, onSubmitPrompt]);
