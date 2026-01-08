@@ -80,3 +80,25 @@
   - playerToRoom Map tracks socket ID -> room code for fast lookups
   - Room deletion happens automatically when last player leaves
 ---
+
+## 2026-01-07 - US-004
+- What was implemented:
+  - Home component with create/join room UI
+  - Lobby component with room code display (classified document style)
+  - Connected players list as "REGISTERED COMBATANTS"
+  - Host sees "INITIATE PROMPT WARFARE" button when 2+ players
+  - Non-hosts see "Waiting for host to start" message
+  - Real-time updates when players join/leave via socket events
+  - Player ready status indicators with READY badge
+  - Player cards with host designation and current player highlighting
+- Files changed:
+  - client/src/types.ts (Player, RoomState, GamePhase types)
+  - client/src/components/Home.tsx (create/join room UI)
+  - client/src/components/Lobby.tsx (lobby phase UI)
+  - client/src/App.tsx (integrated components with socket events)
+- **Learnings for future iterations:**
+  - Socket events: player-joined, player-left, room-updated for real-time updates
+  - RoomState contains canStart boolean computed server-side
+  - currentPlayerId from socket.id to identify self in player list
+  - useCallback for socket event handlers to maintain stable references
+---
