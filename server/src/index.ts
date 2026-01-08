@@ -98,6 +98,53 @@ app.post('/api/avatar/generate', (req: Request<object, AvatarGenerateResponse, A
     });
 });
 
+// Discord OAuth token exchange endpoint
+interface TokenExchangeRequest {
+  code: string;
+}
+
+interface TokenExchangeResponse {
+  access_token?: string;
+  error?: string;
+}
+
+app.post('/api/token', async (req: Request<object, TokenExchangeResponse, TokenExchangeRequest>, res: Response<TokenExchangeResponse>) => {
+  const { code } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    res.status(400).json({ error: 'Missing or invalid code' });
+    return;
+  }
+
+  try {
+    const response = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: config.discordClientId,
+        client_secret: config.discordClientSecret,
+        grant_type: 'authorization_code',
+        code,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Discord token exchange failed:', errorText);
+      res.status(response.status).json({ error: 'Token exchange failed' });
+      return;
+    }
+
+    const data = await response.json() as { access_token: string };
+    res.json({ access_token: data.access_token });
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Set up all socket event handlers
 setupSocketHandlers(io);
 
