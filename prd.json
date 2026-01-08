@@ -418,7 +418,7 @@
         "Host toggle for chaos on/off in lobby"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "Automatic prompt corruption for chaos"
     },
     {

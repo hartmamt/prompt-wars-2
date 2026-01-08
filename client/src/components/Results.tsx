@@ -179,8 +179,9 @@ export function Results({
                           <span className="ml-2 text-xs text-prompt-purple">(YOU)</span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 md:text-sm">
-                        {entry.roundWins} win{entry.roundWins !== 1 ? 's' : ''}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 md:text-sm">
+                        <span>{entry.roundWins} win{entry.roundWins !== 1 ? 's' : ''}</span>
+                        <span className="text-prompt-pink">{entry.tokens} tokens</span>
                       </div>
                     </div>
                   </div>

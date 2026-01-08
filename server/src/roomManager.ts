@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND } from './types.js';
 import { getRandomTheme } from './themes.js';
 import { getRandomModifier, applyModifier } from './modifiers.js';
 
@@ -306,6 +306,7 @@ export function startGame(socketId: string): StartGameResult {
       room.gameState.scores.set(playerId, {
         playerId,
         score: 0,
+        tokens: INITIAL_TOKENS,
         roundWins: 0,
         votesReceived: 0,
         fastestVoterBonuses: 0,
@@ -721,13 +722,26 @@ export function getPlayerAvatar(room: Room, playerId: string): string | null {
   return player?.avatar ?? null;
 }
 
+export interface ScoreChange {
+  playerId: string;
+  pointsAdded: number;
+  reason: string;
+}
+
+export interface TokenChange {
+  playerId: string;
+  tokensAdded: number;
+  reason: string;
+}
+
 export interface MatchupResult {
   winnerId: string | null;  // null if tie
   loserId: string | null;
   player1Votes: number;
   player2Votes: number;
   fastestCorrectVoterId: string | null;
-  scoreChanges: Array<{ playerId: string; pointsAdded: number; reason: string }>;
+  scoreChanges: ScoreChange[];
+  tokenChanges: TokenChange[];
 }
 
 export function calculateMatchupScores(room: Room): MatchupResult | null {
@@ -740,7 +754,8 @@ export function calculateMatchupScores(room: Room): MatchupResult | null {
   const player1Votes = matchup.votes.filter((v) => v.votedForPlayerId === matchup.player1Id).length;
   const player2Votes = matchup.votes.filter((v) => v.votedForPlayerId === matchup.player2Id).length;
 
-  const scoreChanges: Array<{ playerId: string; pointsAdded: number; reason: string }> = [];
+  const scoreChanges: ScoreChange[] = [];
+  const tokenChanges: TokenChange[] = [];
 
   let winnerId: string | null = null;
   let loserId: string | null = null;
@@ -754,14 +769,16 @@ export function calculateMatchupScores(room: Room): MatchupResult | null {
   }
   // If tied, no winner
 
-  // Award points to winner
+  // Award points and tokens to winner
   if (winnerId) {
     const winnerScore = room.gameState.scores.get(winnerId);
     if (winnerScore) {
       winnerScore.score += POINTS_WIN_MATCHUP;
+      winnerScore.tokens += TOKENS_WIN_MATCHUP;
       winnerScore.roundWins += 1;
       winnerScore.votesReceived += winnerId === matchup.player1Id ? player1Votes : player2Votes;
       scoreChanges.push({ playerId: winnerId, pointsAdded: POINTS_WIN_MATCHUP, reason: 'Matchup Win' });
+      tokenChanges.push({ playerId: winnerId, tokensAdded: TOKENS_WIN_MATCHUP, reason: 'Matchup Win' });
     }
   }
 
@@ -789,6 +806,17 @@ export function calculateMatchupScores(room: Room): MatchupResult | null {
         scoreChanges.push({ playerId: fastestCorrectVoterId, pointsAdded: POINTS_FASTEST_VOTER, reason: 'Fastest Correct Vote' });
       }
     }
+
+    // Award tokens to all voters who voted for the winner (majority vote)
+    for (const vote of matchup.votes) {
+      if (vote.votedForPlayerId === winnerId) {
+        const voterScore = room.gameState.scores.get(vote.voterId);
+        if (voterScore) {
+          voterScore.tokens += TOKENS_MAJORITY_VOTE;
+          tokenChanges.push({ playerId: vote.voterId, tokensAdded: TOKENS_MAJORITY_VOTE, reason: 'Majority Vote' });
+        }
+      }
+    }
   }
 
   return {
@@ -798,6 +826,7 @@ export function calculateMatchupScores(room: Room): MatchupResult | null {
     player2Votes,
     fastestCorrectVoterId,
     scoreChanges,
+    tokenChanges,
   };
 }
 
@@ -806,6 +835,7 @@ export interface LeaderboardEntry {
   playerName: string;
   playerAvatar: string | null;
   score: number;
+  tokens: number;
   roundWins: number;
   rank: number;
 }
@@ -817,6 +847,7 @@ export function getLeaderboard(room: Room): LeaderboardEntry[] {
       playerName: getPlayerName(room, score.playerId),
       playerAvatar: getPlayerAvatar(room, score.playerId),
       score: score.score,
+      tokens: score.tokens,
       roundWins: score.roundWins,
       rank: 0,
     }))
@@ -880,14 +911,36 @@ export function getRoundWinner(room: Room): RoundWinnerData | null {
   };
 }
 
-export function transitionToResults(roomCode: string): { success: boolean; room?: Room } {
+export interface TransitionToResultsResult {
+  success: boolean;
+  room?: Room;
+  roundWinnerTokenChange?: TokenChange;
+}
+
+export function transitionToResults(roomCode: string): TransitionToResultsResult {
   const room = rooms.get(roomCode.toUpperCase());
   if (!room) {
     return { success: false };
   }
 
   room.gameState.phase = 'results';
-  return { success: true, room };
+
+  // Award tokens to round winner
+  let roundWinnerTokenChange: TokenChange | undefined;
+  const roundWinner = getRoundWinner(room);
+  if (roundWinner) {
+    const winnerScore = room.gameState.scores.get(roundWinner.playerId);
+    if (winnerScore) {
+      winnerScore.tokens += TOKENS_WIN_ROUND;
+      roundWinnerTokenChange = {
+        playerId: roundWinner.playerId,
+        tokensAdded: TOKENS_WIN_ROUND,
+        reason: 'Round Win',
+      };
+    }
+  }
+
+  return { success: true, room, roundWinnerTokenChange };
 }
 
 export interface StartNextRoundResult {

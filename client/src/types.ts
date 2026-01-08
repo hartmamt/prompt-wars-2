@@ -72,6 +72,7 @@ export interface LeaderboardEntry {
   playerName: string;
   playerAvatar: string | null;
   score: number;
+  tokens: number;
   roundWins: number;
   rank: number;
 }
@@ -79,6 +80,12 @@ export interface LeaderboardEntry {
 export interface ScoreChange {
   playerId: string;
   pointsAdded: number;
+  reason: string;
+}
+
+export interface TokenChange {
+  playerId: string;
+  tokensAdded: number;
   reason: string;
 }
 

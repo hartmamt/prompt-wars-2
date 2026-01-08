@@ -80,6 +80,7 @@ export interface RoundState {
 export interface PlayerScore {
   playerId: string;
   score: number;
+  tokens: number;
   roundWins: number;
   votesReceived: number;
   fastestVoterBonuses: number;
@@ -100,6 +101,11 @@ export interface GameState {
 
 export const POINTS_WIN_MATCHUP = 500;
 export const POINTS_FASTEST_VOTER = 50;
+
+export const INITIAL_TOKENS = 2;
+export const TOKENS_WIN_MATCHUP = 1;
+export const TOKENS_MAJORITY_VOTE = 1;
+export const TOKENS_WIN_ROUND = 2;
 
 export const PROMPTING_DURATION_MS = 90 * 1000; // 90 seconds
 export const PROMPT_MAX_LENGTH = 200;

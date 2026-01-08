@@ -103,8 +103,9 @@ export function FinalResults({
               <div className="text-2xl font-bold text-prompt-green md:text-3xl">
                 {winner.score.toLocaleString()} POINTS
               </div>
-              <div className="mt-2 text-sm text-gray-400 md:text-base">
-                {winner.roundWins} round win{winner.roundWins !== 1 ? 's' : ''}
+              <div className="mt-2 flex items-center justify-center gap-3 text-sm text-gray-400 md:text-base">
+                <span>{winner.roundWins} round win{winner.roundWins !== 1 ? 's' : ''}</span>
+                <span className="text-prompt-pink">{winner.tokens} tokens</span>
               </div>
             </div>
           </div>
@@ -159,8 +160,9 @@ export function FinalResults({
                 <div className="font-mono text-lg font-bold text-prompt-green md:text-xl">
                   {entry.score.toLocaleString()}
                 </div>
-                <div className="text-xs text-gray-500 md:text-sm">
-                  {entry.roundWins} win{entry.roundWins !== 1 ? 's' : ''}
+                <div className="flex items-center justify-end gap-2 text-xs text-gray-500 md:text-sm">
+                  <span>{entry.roundWins} win{entry.roundWins !== 1 ? 's' : ''}</span>
+                  <span className="text-prompt-pink">{entry.tokens}</span>
                 </div>
               </div>
             </div>

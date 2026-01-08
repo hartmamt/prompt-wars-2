@@ -660,3 +660,41 @@
   - Pass feature flags down to child components that need them
   - Preserve settings on game reset by copying from old gameState
 ---
+
+## 2026-01-08 - US-027
+- What was implemented:
+  - Created server/src/modifiers.ts with 100 modifiers across 4 categories:
+    - Style: visual presentation (Renaissance painting, pixel art, glitched, etc.)
+    - Context: setting/scenario (outer space, wizard convention, apocalypse, etc.)
+    - Chaos: pure randomness (on fire, with googly eyes, secretly a cake, etc.)
+    - Vibe: emotional/tonal shifts (cozy, villain energy, existential crisis, etc.)
+  - 3 intensity levels that scale with rounds:
+    - light (rounds 1-2): subtle modifiers
+    - medium (rounds 3-4): more impactful modifiers
+    - maximum (rounds 5+): wild modifiers
+  - getRandomModifier() function with weighted selection toward current intensity
+  - applyModifier() function handles different modifier patterns (but, with, in, as, etc.)
+  - chaosMode and usedModifierIds added to GameState
+  - PlayerPrompt now stores: prompt, modifiedPrompt, modifierId, modifierText
+  - submitPrompt applies random modifier when chaosMode enabled
+  - startGenerating uses modifiedPrompt for image generation when available
+  - RoundWinnerData includes modifierText for results display
+  - Lobby UI: Host-only chaos mode toggle with cosmic styling
+  - Lobby UI: Non-host players see chaos mode badge when enabled
+  - Results phase: Shows "CHAOS MODIFIER" section with modifier text when present
+  - chaosMode preserved on game reset
+- Files changed:
+  - server/src/modifiers.ts (new file with 100 modifiers)
+  - server/src/types.ts (PlayerPrompt modifier fields, chaosMode in GameState)
+  - server/src/roomManager.ts (updateRoomChaosMode, modifier application)
+  - server/src/socketHandlers.ts (set-chaos-mode handler, chaosMode in responses)
+  - client/src/types.ts (chaosMode in RoomState and GameState)
+  - client/src/components/Lobby.tsx (chaos mode toggle UI)
+  - client/src/components/Results.tsx (modifier display)
+  - client/src/App.tsx (handleSetChaosMode callback, modifierText in RoundWinner)
+- **Learnings for future iterations:**
+  - Intensity scaling adds progression to chaos as game continues
+  - Weighted random selection gives variety while favoring current intensity
+  - Store both original and modified prompt for display purposes
+  - Modifier patterns matter: "but X" vs "in the style of X" vs "at X"
+---

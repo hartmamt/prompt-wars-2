@@ -263,6 +263,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
             player2Votes: matchupResult.player2Votes,
             fastestCorrectVoterId: matchupResult.fastestCorrectVoterId,
             scoreChanges: matchupResult.scoreChanges,
+            tokenChanges: matchupResult.tokenChanges,
             leaderboard: getLeaderboard(room),
           });
         }
@@ -271,7 +272,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
         if (advanceResult.isComplete && advanceResult.room) {
           // Transition to results phase
-          transitionToResults(advanceResult.room.code);
+          const transitionResult = transitionToResults(advanceResult.room.code);
           const roundWinner = getRoundWinner(advanceResult.room);
 
           io.to(room.code).emit('round-results', {
@@ -285,6 +286,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
               imageBase64: roundWinner.imageBase64,
               votesReceived: roundWinner.totalVotesReceived,
             } : null,
+            roundWinnerTokenChange: transitionResult.roundWinnerTokenChange ?? null,
             theme: advanceResult.room.gameState.currentRound?.themeText ?? '',
             roundNumber: advanceResult.room.gameState.round,
             totalRounds: advanceResult.room.gameState.totalRounds,
@@ -336,6 +338,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
           player2Votes: matchupResult.player2Votes,
           fastestCorrectVoterId: matchupResult.fastestCorrectVoterId,
           scoreChanges: matchupResult.scoreChanges,
+          tokenChanges: matchupResult.tokenChanges,
           leaderboard: getLeaderboard(room),
         });
       }
@@ -344,7 +347,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
       if (advanceResult.isComplete && advanceResult.room) {
         // Transition to results phase
-        transitionToResults(advanceResult.room.code);
+        const transitionResult = transitionToResults(advanceResult.room.code);
         const roundWinner = getRoundWinner(advanceResult.room);
 
         io.to(room.code).emit('round-results', {
@@ -358,6 +361,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
             imageBase64: roundWinner.imageBase64,
             votesReceived: roundWinner.totalVotesReceived,
           } : null,
+          roundWinnerTokenChange: transitionResult.roundWinnerTokenChange ?? null,
           theme: advanceResult.room.gameState.currentRound?.themeText ?? '',
           roundNumber: advanceResult.room.gameState.round,
           totalRounds: advanceResult.room.gameState.totalRounds,
