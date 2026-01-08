@@ -163,3 +163,23 @@
   - Timer effect depends on phaseEndTime, hasSubmitted, prompt for auto-submit
   - Prompts stored in Map<string, PlayerPrompt> keyed by socket ID
 ---
+
+## 2026-01-07 - US-008
+- What was implemented:
+  - POST to fal.run/fal-ai/flux/schnell endpoint
+  - FAL_API_KEY environment variable in config.ts
+  - generateImage() function accepts prompt, returns base64 image
+  - Error handling with descriptive error messages
+  - 30-second timeout using AbortController
+  - Response parsed: images[0].url fetched and converted to base64
+  - Safety checker enabled in API request
+- Files changed:
+  - server/src/config.ts (added falApiKey)
+  - server/src/flux.ts (new module with generateImage function)
+  - server/.env.example (added FAL_API_KEY)
+- **Learnings for future iterations:**
+  - Flux API returns image URL, must fetch separately to get actual image data
+  - Use AbortController for timeout handling with fetch
+  - Response includes content_type for proper base64 data URL prefix
+  - Flux Schnell uses 4 inference steps for fast generation
+---

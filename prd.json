@@ -128,7 +128,7 @@
         "Response parsed correctly for image data"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Primary image generation for game images (~$0.003/image)"
     },
     {
