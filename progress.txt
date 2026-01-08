@@ -1,0 +1,58 @@
+## Codebase Patterns
+- TypeScript strict mode is enabled in server/tsconfig.json with all strict flags
+- ESLint configured with @typescript-eslint/no-explicit-any as error
+- Environment variables loaded via dotenv in server/src/config.ts with type-safe getEnvVar helper
+- Server exports app, io, httpServer for testing purposes
+- Client uses Vite with VITE_ prefix for environment variables
+- Socket.io client in client/src/socket.ts with autoConnect: false - call connectSocket() manually
+- Discord SDK setup in client/src/discord.ts - use isInDiscord() to check if in Discord iframe
+- Tailwind custom colors: prompt-purple, prompt-pink, prompt-green, prompt-black
+
+---
+
+## 2026-01-07 - US-001
+- What was implemented:
+  - Express server with TypeScript strict mode
+  - Socket.io configured for real-time communication
+  - Health endpoint at GET /health returns {status: 'ok'}
+  - Environment variables loaded (PORT, GEMINI_API_KEY, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, CORS_ORIGIN)
+  - npm run build and npm run dev scripts work
+  - No TypeScript 'any' types (enforced by ESLint)
+- Files changed:
+  - server/package.json
+  - server/tsconfig.json
+  - server/.eslintrc.json
+  - server/src/config.ts
+  - server/src/index.ts
+  - server/.env.example
+  - server/.gitignore
+- **Learnings for future iterations:**
+  - config.ts uses noUncheckedIndexedAccess so process.env access needs bracket notation with nullish coalescing
+  - Server runs on port 3000 by default, configurable via PORT env var
+  - CORS_ORIGIN defaults to '*' if not set
+---
+
+## 2026-01-07 - US-002
+- What was implemented:
+  - React + Vite + TypeScript setup
+  - Tailwind CSS configured with custom color palette
+  - Discord Embedded App SDK integrated with auth flow
+  - Socket.io client connects to server
+  - Environment variables (VITE_DISCORD_CLIENT_ID, VITE_SOCKET_URL)
+  - npm run build produces dist folder
+  - Mobile responsive base layout with Tailwind
+- Files changed:
+  - client/package.json
+  - client/tsconfig.json, tsconfig.node.json
+  - client/vite.config.ts
+  - client/tailwind.config.js, postcss.config.js
+  - client/src/App.tsx, main.tsx, index.css
+  - client/src/socket.ts, discord.ts
+  - client/src/vite-env.d.ts
+  - client/.eslintrc.json
+- **Learnings for future iterations:**
+  - Discord SDK requires /api/token endpoint on server for OAuth token exchange
+  - socket.autoConnect is false by default - must call connectSocket() in app init
+  - Use isInDiscord() to detect Discord iframe context
+  - Tailwind extends theme.colors for custom prompt-* colors
+---
