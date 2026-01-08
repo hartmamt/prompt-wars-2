@@ -36,7 +36,7 @@ export function Results({
         <div className="text-sm font-bold uppercase tracking-widest text-prompt-pink">
           ROUND {roundNumber} OF {totalRounds}
         </div>
-        <h1 className="mt-2 text-4xl font-bold text-prompt-purple md:text-5xl">
+        <h1 className="mt-2 font-display text-2xl text-prompt-purple md:text-3xl">
           RESULTS
         </h1>
       </div>

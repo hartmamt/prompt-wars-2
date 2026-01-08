@@ -27,7 +27,7 @@ export function Home({ connected, onCreateRoom, onJoinRoom, error }: HomeProps) 
   if (mode === 'menu') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-prompt-black p-4">
-        <h1 className="mb-2 text-4xl font-bold text-prompt-purple md:text-6xl">
+        <h1 className="mb-2 font-display text-2xl text-prompt-purple md:text-4xl" data-text="PROMPT WARS">
           PROMPT WARS
         </h1>
         <p className="mb-8 text-sm text-gray-500">THE ULTIMATE AI IMAGE BATTLE</p>

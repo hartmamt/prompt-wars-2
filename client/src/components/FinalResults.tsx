@@ -41,7 +41,7 @@ export function FinalResults({
         <div className="mb-2 text-sm font-bold uppercase tracking-widest text-prompt-pink">
           GAME OVER
         </div>
-        <h1 className="text-5xl font-bold text-prompt-purple md:text-6xl">
+        <h1 className="font-display text-2xl text-prompt-purple md:text-4xl">
           FINAL RESULTS
         </h1>
       </div>

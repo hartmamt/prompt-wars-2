@@ -66,14 +66,14 @@ export function Lobby({
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="mb-2 text-3xl font-bold text-prompt-purple md:text-4xl">
+        <h1 className="mb-2 font-display text-xl text-prompt-purple md:text-2xl">
           PROMPT WARRIORS ASSEMBLE
         </h1>
         <p className="text-gray-400">Gather your team and prepare for battle</p>
       </div>
 
       {/* Room Code */}
-      <div className="mb-8 rounded-lg border-2 border-dashed border-prompt-pink bg-prompt-pink/5 p-6 text-center">
+      <div className="holo-border mb-8 rounded-lg p-6 text-center">
         <div className="mb-1 text-xs font-bold uppercase tracking-widest text-prompt-pink">
           ▓▓▓ CLASSIFIED ▓▓▓
         </div>
@@ -138,13 +138,13 @@ export function Lobby({
           <button
             onClick={onStartGame}
             disabled={!room.canStart}
-            className={`w-full rounded-lg px-6 py-4 text-lg font-bold transition-all ${
+            className={`terminal-btn w-full rounded-lg px-6 py-4 text-lg font-bold transition-all ${
               room.canStart
                 ? 'bg-prompt-purple text-white hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25'
                 : 'cursor-not-allowed bg-gray-800 text-gray-500'
             }`}
           >
-            {room.canStart ? '⚔️ INITIATE PROMPT WARFARE ⚔️' : 'WAITING FOR MORE WARRIORS...'}
+            {room.canStart ? 'INITIATE PROMPT WARFARE' : 'WAITING FOR MORE WARRIORS...'}
           </button>
         ) : (
           <>
