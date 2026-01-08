@@ -407,6 +407,19 @@ function App() {
     socket.emit('set-category', { category });
   }, []);
 
+  const handleAvatarChange = useCallback((avatar: string | null) => {
+    if (avatar) {
+      socket.emit('update-avatar', { avatar });
+    }
+  }, []);
+
+  // Get Discord avatar URL if we have a Discord user
+  const getDiscordAvatarUrl = useCallback((): string | null => {
+    if (!discordUser) return null;
+    if (!discordUser.avatar) return null;
+    return `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=256`;
+  }, [discordUser]);
+
   const handleSubmitPrompt = useCallback((prompt: string) => {
     socket.emit('submit-prompt', { prompt }, (response: { success: boolean; error?: string }) => {
       if (response.success) {
@@ -548,10 +561,12 @@ function App() {
       <Lobby
         room={room}
         currentPlayerId={currentPlayerId}
+        discordAvatarUrl={getDiscordAvatarUrl()}
         onStartGame={handleStartGame}
         onLeaveRoom={handleLeaveRoom}
         onToggleReady={handleToggleReady}
         onSetCategory={handleSetCategory}
+        onAvatarChange={handleAvatarChange}
       />
     );
   }

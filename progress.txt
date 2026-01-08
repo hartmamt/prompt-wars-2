@@ -451,3 +451,27 @@
   - isValidStyle type guard narrows string to AvatarStyle union type
   - Style prompts should emphasize generating ONLY the image to avoid text responses
 ---
+
+## 2026-01-08 - US-020
+- What was implemented:
+  - AvatarSelector component with three options: Discord, Upload, AI Style
+  - Discord avatar is default option (fetches from CDN using user ID and avatar hash)
+  - Upload accepts image files with FileReader, crops to 256x256 square using canvas
+  - AI Style option shows 5 style buttons: cartoon, anime, pixel, fantasy, sketch
+  - Photo preview remains visible during AI generation (shows spinning gear overlay)
+  - Generated avatar replaces preview on completion
+  - Error handling for file size (5MB limit), file type, and API failures
+  - update-avatar socket event broadcasts avatar changes to all players in room
+  - Integrated AvatarSelector into Lobby component
+  - App.tsx provides discordAvatarUrl and handleAvatarChange callback
+- Files changed:
+  - client/src/components/AvatarSelector.tsx (new file)
+  - client/src/components/Lobby.tsx (added AvatarSelector, new props)
+  - client/src/App.tsx (added handleAvatarChange, getDiscordAvatarUrl, passed to Lobby)
+  - server/src/socketHandlers.ts (added update-avatar socket handler)
+- **Learnings for future iterations:**
+  - Async callbacks in React event handlers need sync wrappers (void asyncFn())
+  - Canvas center-crop: take min dimension, calculate offset, draw scaled
+  - Discord CDN avatar URL format: https://cdn.discordapp.com/avatars/{userId}/{avatarHash}.png
+  - updatePlayerAvatar function already existed in roomManager.ts
+---

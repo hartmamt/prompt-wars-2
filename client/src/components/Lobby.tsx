@@ -1,13 +1,16 @@
 import type { RoomState, Player, CategorySelection } from '../types';
 import { CATEGORY_OPTIONS } from '../types';
+import { AvatarSelector } from './AvatarSelector';
 
 interface LobbyProps {
   room: RoomState;
   currentPlayerId: string;
+  discordAvatarUrl: string | null;
   onStartGame: () => void;
   onLeaveRoom: () => void;
   onToggleReady: () => void;
   onSetCategory: (category: CategorySelection) => void;
+  onAvatarChange: (avatar: string | null) => void;
 }
 
 function PlayerCard({ player, isCurrentPlayer }: { player: Player; isCurrentPlayer: boolean }) {
@@ -53,14 +56,17 @@ function PlayerCard({ player, isCurrentPlayer }: { player: Player; isCurrentPlay
 export function Lobby({
   room,
   currentPlayerId,
+  discordAvatarUrl,
   onStartGame,
   onLeaveRoom,
   onToggleReady,
   onSetCategory,
+  onAvatarChange,
 }: LobbyProps) {
   const currentPlayer = room.players.find((p) => p.id === currentPlayerId);
   const isHost = currentPlayer?.isHost ?? false;
   const isReady = currentPlayer?.isReady ?? false;
+  const currentAvatar = currentPlayer?.avatar ?? null;
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4 md:p-8">
@@ -82,6 +88,15 @@ export function Lobby({
           {room.code}
         </div>
         <div className="mt-2 text-xs text-gray-500 md:text-sm">Share this code with your opponents</div>
+      </div>
+
+      {/* Avatar Selector */}
+      <div className="mb-8 md:mb-10">
+        <AvatarSelector
+          discordAvatarUrl={discordAvatarUrl}
+          currentAvatar={currentAvatar}
+          onAvatarChange={onAvatarChange}
+        />
       </div>
 
       {/* Category Selection (Host Only) */}

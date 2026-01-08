@@ -6,6 +6,7 @@ import {
   getPlayersArray,
   canStartGame,
   updatePlayerReady,
+  updatePlayerAvatar,
   updateRoomCategory,
   startGame,
   submitPrompt,
@@ -126,6 +127,16 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     // Update ready status
     socket.on('player-ready', (data: { isReady: boolean }) => {
       const room = updatePlayerReady(socket.id, data.isReady);
+      if (room) {
+        io.to(room.code).emit('room-updated', {
+          room: roomToResponse(room),
+        });
+      }
+    });
+
+    // Update player avatar
+    socket.on('update-avatar', (data: { avatar: string }) => {
+      const room = updatePlayerAvatar(socket.id, data.avatar);
       if (room) {
         io.to(room.code).emit('room-updated', {
           room: roomToResponse(room),

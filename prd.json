@@ -313,7 +313,7 @@
         "Generated avatar replaces preview on completion"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Flexible avatar creation in lobby"
     },
     {
