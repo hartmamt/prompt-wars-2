@@ -146,7 +146,7 @@ function App() {
   const [resultsRoundNumber, setResultsRoundNumber] = useState(1);
   const [resultsTotalRounds, setResultsTotalRounds] = useState(3);
   const [audioMuted, setAudioMuted] = useState(false);
-  const [incomingSabotage, setIncomingSabotage] = useState<{ attackerName: string } | null>(null);
+  const [incomingSabotage, setIncomingSabotage] = useState<{ attackerName: string; sabotageType?: string } | null>(null);
   const audioInitializedRef = useRef(false);
   const prevPhaseRef = useRef<GamePhase>('home');
 
@@ -313,7 +313,7 @@ function App() {
       setError(data.reason);
     };
 
-    const onIncomingSabotage = (data: { attackerName: string }) => {
+    const onIncomingSabotage = (data: { attackerName: string; sabotageType?: string }) => {
       setIncomingSabotage(data);
       // Clear the sabotage warning after a few seconds
       setTimeout(() => {
@@ -499,8 +499,8 @@ function App() {
     });
   }, []);
 
-  const handleUseSabotage = useCallback((victimId: string) => {
-    socket.emit('use-sabotage', { victimId }, (response: { success: boolean; error?: string }) => {
+  const handleUseSabotage = useCallback((victimId: string, sabotageType: string = 'word_injection') => {
+    socket.emit('use-sabotage', { victimId, sabotageType }, (response: { success: boolean; error?: string }) => {
       if (!response.success) {
         setError(response.error ?? 'Failed to use sabotage');
       }
@@ -577,7 +577,7 @@ function App() {
           currentPlayerId={currentPlayerId}
           currentPlayerTokens={currentPlayerTokens}
           onUseSabotage={handleUseSabotage}
-          incomingSabotage={incomingSabotage}
+          incomingSabotage={incomingSabotage as { attackerName: string; sabotageType?: 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box' } | null}
         />
         <MuteButton />
       </div>

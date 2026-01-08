@@ -40,9 +40,10 @@ export interface PlayerPrompt {
   modifiedPrompt: string | null; // Prompt with modifier applied (null if chaos mode off)
   modifierId: string | null; // ID of modifier applied (null if chaos mode off)
   modifierText: string | null; // Text of modifier applied (null if chaos mode off)
-  sabotagedPrompt: string | null; // Prompt after sabotage applied
-  sabotageText: string | null; // The sabotage injection text
-  sabotageAttackerId: string | null; // Who sabotaged this player
+  sabotagedPrompt: string | null; // Prompt after all sabotages applied
+  sabotageText: string | null; // Combined sabotage effects text (for display)
+  sabotageAttackerId: string | null; // Primary sabotage attacker (for display)
+  sabotageType: SabotageType | null; // Primary sabotage type (for display)
   submittedAt: Date;
 }
 
@@ -69,12 +70,25 @@ export interface Matchup {
 
 export const VOTING_DURATION_MS = 60 * 1000; // 60 seconds per matchup
 
+export type SabotageType = 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box';
+
 export interface Sabotage {
   attackerId: string;
   victimId: string;
-  injectionId: string;
-  injectionText: string;
+  sabotageType: SabotageType;
+  effectText: string; // The effect description
+  effectData?: string; // Additional data (e.g., attacker name for photobomb)
   appliedAt: Date;
+  // Legacy fields for backward compatibility
+  injectionId?: string;
+  injectionText?: string;
+}
+
+// Tracks sabotage history per attacker for per-game limits
+export interface SabotageHistory {
+  attackerId: string;
+  victimId: string;
+  roundNumber: number;
 }
 
 export interface RoundState {
@@ -109,6 +123,7 @@ export interface GameState {
   usedModifierIds: Set<string>;
   currentRound: RoundState | null;
   scores: Map<string, PlayerScore>;
+  sabotageHistory: SabotageHistory[]; // Track sabotages for per-game limits
 }
 
 export const POINTS_WIN_MATCHUP = 500;

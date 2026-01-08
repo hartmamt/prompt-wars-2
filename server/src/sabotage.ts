@@ -1,8 +1,38 @@
 /**
- * Sabotage System - Word Injections
+ * Sabotage System - Multiple Sabotage Types
  *
- * Random words/phrases that can be injected into opponent prompts.
+ * Players can spend tokens to sabotage opponents with various effects.
  */
+
+// Sabotage types and their costs
+export type SabotageType = 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box';
+
+export const SABOTAGE_COSTS: Record<SabotageType, number> = {
+  word_injection: 2,
+  style_override: 3,
+  photobomb: 2,
+  prompt_swap: 4,
+  mystery_box: 1,
+};
+
+export const SABOTAGE_TYPE_LABELS: Record<SabotageType, string> = {
+  word_injection: 'Word Injection',
+  style_override: 'Style Override',
+  photobomb: 'Photobomb',
+  prompt_swap: 'Prompt Swap',
+  mystery_box: 'Mystery Box',
+};
+
+export const SABOTAGE_TYPE_DESCRIPTIONS: Record<SabotageType, string> = {
+  word_injection: 'Inject a random silly phrase into their prompt',
+  style_override: 'Replace their art style with something ridiculous',
+  photobomb: 'Your avatar appears in their image',
+  prompt_swap: 'Exchange prompts with your target',
+  mystery_box: 'Random effect (weighted toward cheaper options)',
+};
+
+// Maximum sabotages per player per game
+export const MAX_SABOTAGES_PER_PLAYER_PER_GAME = 2;
 
 export interface SabotageInjection {
   id: string;
@@ -77,18 +107,42 @@ export const SABOTAGE_INJECTIONS: SabotageInjection[] = [
   { id: 'inj-55', text: 'as an infomercial gone wrong', category: 'style' },
 ];
 
+// Style Override options - replace entire art style
+export const STYLE_OVERRIDES: string[] = [
+  'in Minions style',
+  'as a bad tattoo',
+  'in Shrek style',
+  'as a poorly drawn stick figure',
+  'in Comic Sans aesthetic',
+  'as a Chia Pet',
+  'in Nicolas Cage style',
+  'as a "Live Laugh Love" decoration',
+  'in Teletubbies style',
+  'as a dated 90s CGI render',
+  'in Clippy the paperclip style',
+  'as a bootleg knockoff version',
+  'in Furby aesthetic',
+  'as an airbrushed van mural',
+  'in Ugandan Knuckles style',
+];
+
+// Legacy constant for backward compatibility
 export const SABOTAGE_COST = 2;
 
 export interface Sabotage {
   attackerId: string;
   victimId: string;
-  injectionId: string;
-  injectionText: string;
+  sabotageType: SabotageType;
+  effectText: string; // The text describing what happened
+  effectData?: string; // Additional data (e.g., avatar URL for photobomb)
   appliedAt: Date;
+  // Legacy fields for backward compatibility
+  injectionId?: string;
+  injectionText?: string;
 }
 
 /**
- * Get a random sabotage injection
+ * Get a random sabotage injection (for word_injection type)
  */
 export function getRandomInjection(excludeIds?: Set<string>): SabotageInjection {
   const available = SABOTAGE_INJECTIONS.filter(inj => !excludeIds?.has(inj.id));
@@ -99,7 +153,40 @@ export function getRandomInjection(excludeIds?: Set<string>): SabotageInjection 
 }
 
 /**
- * Apply sabotage injection to a prompt
+ * Get a random style override
+ */
+export function getRandomStyleOverride(): string {
+  return STYLE_OVERRIDES[Math.floor(Math.random() * STYLE_OVERRIDES.length)]!;
+}
+
+/**
+ * Get a random mystery box sabotage type (weighted toward cheaper ones)
+ * Excludes mystery_box itself and prompt_swap (too powerful for mystery)
+ */
+export function getMysteryBoxType(): SabotageType {
+  // Weighted random: cheaper types have higher probability
+  const weights: [SabotageType, number][] = [
+    ['word_injection', 40], // Most common
+    ['style_override', 30],
+    ['photobomb', 30],
+    // prompt_swap excluded - too powerful
+  ];
+
+  const totalWeight = weights.reduce((sum, [, w]) => sum + w, 0);
+  let random = Math.random() * totalWeight;
+
+  for (const [type, weight] of weights) {
+    random -= weight;
+    if (random <= 0) {
+      return type;
+    }
+  }
+
+  return 'word_injection'; // fallback
+}
+
+/**
+ * Apply sabotage injection to a prompt (for word_injection type)
  */
 export function applySabotage(originalPrompt: string, injection: SabotageInjection): string {
   // Add the injection to the end of the prompt with appropriate connector
@@ -112,4 +199,92 @@ export function applySabotage(originalPrompt: string, injection: SabotageInjecti
   }
   // Actions get attached directly
   return `${originalPrompt}, ${text}`;
+}
+
+/**
+ * Apply style override to a prompt
+ */
+export function applyStyleOverride(originalPrompt: string, styleText: string): string {
+  // Style overrides are added at the end
+  return `${originalPrompt}, ${styleText}`;
+}
+
+/**
+ * Apply photobomb to a prompt - adds the attacker's avatar description
+ */
+export function applyPhotobomb(originalPrompt: string, attackerName: string): string {
+  return `${originalPrompt}, with ${attackerName} photobombing in the background`;
+}
+
+/**
+ * Create a sabotage effect based on type
+ */
+export interface SabotageEffect {
+  effectText: string;
+  effectData?: string;
+  injectionId?: string;
+}
+
+export function createSabotageEffect(
+  sabotageType: SabotageType,
+  attackerName?: string,
+  excludeInjectionIds?: Set<string>
+): SabotageEffect {
+  switch (sabotageType) {
+    case 'word_injection': {
+      const injection = getRandomInjection(excludeInjectionIds);
+      return {
+        effectText: injection.text,
+        injectionId: injection.id,
+      };
+    }
+    case 'style_override': {
+      return {
+        effectText: getRandomStyleOverride(),
+      };
+    }
+    case 'photobomb': {
+      return {
+        effectText: `photobombed by ${attackerName}`,
+        effectData: attackerName, // Store attacker name for prompt modification
+      };
+    }
+    case 'prompt_swap': {
+      return {
+        effectText: 'prompt swapped!',
+      };
+    }
+    case 'mystery_box': {
+      // Resolve to an actual type
+      const resolvedType = getMysteryBoxType();
+      const resolved = createSabotageEffect(resolvedType, attackerName, excludeInjectionIds);
+      return {
+        ...resolved,
+        effectText: `Mystery Box: ${resolved.effectText}`,
+      };
+    }
+  }
+}
+
+/**
+ * Apply a sabotage to a prompt based on type
+ */
+export function applySabotageToPrompt(
+  originalPrompt: string,
+  sabotage: Sabotage
+): string {
+  switch (sabotage.sabotageType) {
+    case 'word_injection':
+      return `${originalPrompt}, ${sabotage.effectText}`;
+    case 'style_override':
+      return applyStyleOverride(originalPrompt, sabotage.effectText);
+    case 'photobomb':
+      return applyPhotobomb(originalPrompt, sabotage.effectData ?? 'someone');
+    case 'prompt_swap':
+      // Prompt swap is handled separately in roomManager
+      return originalPrompt;
+    case 'mystery_box':
+      // Mystery box effect is already resolved in effectText
+      return `${originalPrompt}, ${sabotage.effectText.replace('Mystery Box: ', '')}`;
+  }
 }

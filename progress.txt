@@ -791,3 +791,57 @@
   - Victim only sees warning, not what injection will be used
   - Token deduction happens immediately on sabotage cast
 ---
+
+## US-030: Sabotage - Additional Types
+- **Status:** COMPLETED
+- **Quality gates:**
+  - [x] TypeScript: All types compile cleanly
+  - [x] ESLint: No warnings or errors
+  - [x] Functionality: Multiple sabotage types with varying costs
+- **Implementation details:**
+  - Extended sabotage.ts with new types and costs:
+    - SabotageType union: word_injection, style_override, photobomb, prompt_swap, mystery_box
+    - SABOTAGE_COSTS: { word_injection: 2, style_override: 3, photobomb: 2, prompt_swap: 4, mystery_box: 1 }
+    - SABOTAGE_TYPE_LABELS and SABOTAGE_TYPE_DESCRIPTIONS for UI
+    - MAX_SABOTAGES_PER_PLAYER_PER_GAME = 2
+  - Added 15 style override options (Minions style, bad tattoo, Shrek style, etc.)
+  - New utility functions:
+    - getRandomStyleOverride() for style override sabotage
+    - getMysteryBoxType() with weighted random (word 40%, style 30%, photobomb 30%)
+    - createSabotageEffect() factory for each sabotage type
+    - applySabotageToPrompt() applies effect based on type
+  - Updated Sabotage interface with sabotageType, effectText, effectData
+  - Added SabotageHistory interface for tracking per-game limits
+  - Added sabotageHistory[] to GameState
+  - Updated useSabotage() to:
+    - Accept sabotageType parameter (defaults to word_injection)
+    - Check consecutive sabotage limit (can't sabotage same player 2 rounds in a row)
+    - Check per-game limit (max 2 sabotages per player per game)
+    - Use type-specific costs
+    - Record sabotage in sabotageHistory
+  - Updated submitPrompt() to apply multiple sabotages using applySabotageToPrompt()
+  - Updated startGenerating() to handle prompt swaps:
+    - Swaps final prompts between attacker and victim
+    - Marks both players' prompts with "Prompt Swap!"
+  - Updated socket handler to accept sabotageType parameter
+  - Updated Prompting.tsx UI:
+    - SABOTAGE_OPTIONS array with all types, costs, descriptions, emojis
+    - Sabotage type selection grid (5 options)
+    - Dynamic cost display per type
+    - Shows which types player can afford
+    - Selected type description shown below grid
+    - Confirm button shows selected type name and cost
+  - Updated incomingSabotage to include sabotageType for display
+- Files changed:
+  - server/src/sabotage.ts (new types, style overrides, mystery box, effect functions)
+  - server/src/types.ts (SabotageType, SabotageHistory, updated Sabotage/PlayerPrompt/GameState)
+  - server/src/roomManager.ts (useSabotage with type, limits, prompt swap, history tracking)
+  - server/src/socketHandlers.ts (sabotageType parameter)
+  - client/src/components/Prompting.tsx (sabotage type selection UI)
+  - client/src/App.tsx (sabotageType in handleUseSabotage, incomingSabotage state)
+- **Learnings for future iterations:**
+  - Prompt swap is resolved at startGenerating time after all prompts submitted
+  - Mystery box excludes prompt_swap to avoid chaos
+  - History tracking enables both consecutive and per-game limits
+  - Sabotage type selection adds strategic depth to gameplay
+---

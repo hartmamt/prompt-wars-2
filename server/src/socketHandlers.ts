@@ -228,8 +228,10 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     });
 
     // Use sabotage
-    socket.on('use-sabotage', (data: { victimId: string }, callback: (response: { success: boolean; error?: string; tokensRemaining?: number }) => void) => {
-      const result = useSabotage(socket.id, data.victimId);
+    socket.on('use-sabotage', (data: { victimId: string; sabotageType?: string }, callback: (response: { success: boolean; error?: string; tokensRemaining?: number }) => void) => {
+      // Default to word_injection for backward compatibility
+      const sabotageType = (data.sabotageType ?? 'word_injection') as 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box';
+      const result = useSabotage(socket.id, data.victimId, sabotageType);
 
       if (!result.success || !result.room || !result.sabotage) {
         callback({ success: false, error: result.error });
@@ -247,6 +249,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       io.to(data.victimId).emit('incoming-sabotage', {
         attackerId: socket.id,
         attackerName,
+        sabotageType: result.sabotage.sabotageType,
         message: 'INCOMING SABOTAGE',
       });
 
@@ -256,6 +259,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
         attackerName,
         victimId: data.victimId,
         victimName,
+        sabotageType: result.sabotage.sabotageType,
         leaderboard: getLeaderboard(result.room),
       });
     });

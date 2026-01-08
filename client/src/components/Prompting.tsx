@@ -2,6 +2,24 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { playClick, playHover, playCountdownTick, playThemeReveal, playPromptSubmit } from '../sounds';
 import type { Player } from '../types';
 
+type SabotageType = 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box';
+
+interface SabotageOption {
+  type: SabotageType;
+  name: string;
+  description: string;
+  cost: number;
+  emoji: string;
+}
+
+const SABOTAGE_OPTIONS: SabotageOption[] = [
+  { type: 'mystery_box', name: 'Mystery Box', description: 'Random effect', cost: 1, emoji: '🎁' },
+  { type: 'word_injection', name: 'Word Inject', description: 'Add silly phrase', cost: 2, emoji: '💬' },
+  { type: 'photobomb', name: 'Photobomb', description: 'You appear in image', cost: 2, emoji: '📸' },
+  { type: 'style_override', name: 'Style Override', description: 'Ridiculous art style', cost: 3, emoji: '🎨' },
+  { type: 'prompt_swap', name: 'Prompt Swap', description: 'Exchange prompts', cost: 4, emoji: '🔄' },
+];
+
 interface PromptingProps {
   theme: string;
   phaseEndTime: string;
@@ -12,12 +30,11 @@ interface PromptingProps {
   players: Player[];
   currentPlayerId: string;
   currentPlayerTokens: number;
-  onUseSabotage: (victimId: string) => void;
-  incomingSabotage: { attackerName: string } | null;
+  onUseSabotage: (victimId: string, sabotageType: SabotageType) => void;
+  incomingSabotage: { attackerName: string; sabotageType?: SabotageType } | null;
 }
 
 const PROMPT_MAX_LENGTH = 200;
-const SABOTAGE_COST = 2;
 
 export function Prompting({
   theme,
@@ -38,6 +55,7 @@ export function Prompting({
   const hasPlayedThemeReveal = useRef(false);
   const [showSabotagePanel, setShowSabotagePanel] = useState(false);
   const [selectedVictimId, setSelectedVictimId] = useState<string | null>(null);
+  const [selectedSabotageType, setSelectedSabotageType] = useState<SabotageType>('word_injection');
 
   // Play theme reveal sound on mount
   useEffect(() => {
@@ -83,14 +101,17 @@ export function Prompting({
     }
   }, [prompt, hasSubmitted, onSubmitPrompt]);
 
+  const selectedOption = SABOTAGE_OPTIONS.find(o => o.type === selectedSabotageType)!;
+  const canAffordSelected = currentPlayerTokens >= selectedOption.cost;
+
   const handleSabotage = useCallback(() => {
-    if (selectedVictimId && currentPlayerTokens >= SABOTAGE_COST) {
+    if (selectedVictimId && canAffordSelected) {
       void playClick();
-      onUseSabotage(selectedVictimId);
+      onUseSabotage(selectedVictimId, selectedSabotageType);
       setSelectedVictimId(null);
       setShowSabotagePanel(false);
     }
-  }, [selectedVictimId, currentPlayerTokens, onUseSabotage]);
+  }, [selectedVictimId, canAffordSelected, selectedSabotageType, onUseSabotage]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -99,8 +120,13 @@ export function Prompting({
   };
 
   const isLowTime = timeLeft <= 10;
-  const canAffordSabotage = currentPlayerTokens >= SABOTAGE_COST;
+  const cheapestSabotageCost = Math.min(...SABOTAGE_OPTIONS.map(o => o.cost));
+  const canAffordAnySabotage = currentPlayerTokens >= cheapestSabotageCost;
   const otherPlayers = players.filter(p => p.id !== currentPlayerId);
+
+  const getSabotageTypeName = (type: SabotageType): string => {
+    return SABOTAGE_OPTIONS.find(o => o.type === type)?.name ?? 'Sabotage';
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4">
@@ -109,7 +135,7 @@ export function Prompting({
         <div className="fixed left-0 right-0 top-0 z-50 animate-pulse border-b-4 border-red-500 bg-red-900/90 p-4 text-center">
           <div className="text-xl font-bold text-red-400">⚠️ INCOMING SABOTAGE ⚠️</div>
           <div className="text-sm text-red-300">
-            {incomingSabotage.attackerName} has targeted you!
+            {incomingSabotage.attackerName} used {incomingSabotage.sabotageType ? getSabotageTypeName(incomingSabotage.sabotageType) : 'Sabotage'} on you!
           </div>
         </div>
       )}
@@ -190,28 +216,66 @@ export function Prompting({
             <button
               onClick={() => { void playClick(); setShowSabotagePanel(true); }}
               onMouseEnter={() => void playHover()}
-              disabled={!canAffordSabotage}
+              disabled={!canAffordAnySabotage}
               className={`w-full rounded-lg border-2 px-4 py-3 text-center transition-all ${
-                canAffordSabotage
+                canAffordAnySabotage
                   ? 'border-red-700 bg-red-900/20 text-red-400 hover:border-red-500 hover:bg-red-900/40'
                   : 'cursor-not-allowed border-gray-700 bg-gray-900/50 text-gray-600'
               }`}
             >
               <span className="font-bold">💀 SABOTAGE</span>
               <span className="ml-2 text-sm">
-                ({SABOTAGE_COST} tokens - You have {currentPlayerTokens})
+                (You have {currentPlayerTokens} tokens)
               </span>
             </button>
           ) : (
             <div className="rounded-lg border-2 border-red-700 bg-gray-900 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <div className="text-lg font-bold text-red-400">SELECT TARGET</div>
+                <div className="text-lg font-bold text-red-400">SABOTAGE MENU</div>
                 <button
                   onClick={() => { void playClick(); setShowSabotagePanel(false); setSelectedVictimId(null); }}
                   className="text-gray-400 hover:text-white"
                 >
                   ✕
                 </button>
+              </div>
+
+              {/* Sabotage Type Selection */}
+              <div className="mb-4">
+                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">
+                  Select Sabotage Type
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                  {SABOTAGE_OPTIONS.map((option) => {
+                    const canAfford = currentPlayerTokens >= option.cost;
+                    return (
+                      <button
+                        key={option.type}
+                        onClick={() => { void playClick(); setSelectedSabotageType(option.type); }}
+                        disabled={!canAfford}
+                        className={`rounded-lg border-2 p-2 text-center transition-all ${
+                          selectedSabotageType === option.type
+                            ? 'border-red-500 bg-red-900/40'
+                            : canAfford
+                              ? 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                              : 'cursor-not-allowed border-gray-800 bg-gray-900 opacity-50'
+                        }`}
+                      >
+                        <div className="text-xl">{option.emoji}</div>
+                        <div className="text-xs font-semibold text-white">{option.name}</div>
+                        <div className="text-xs text-prompt-pink">{option.cost} tokens</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-center text-xs text-gray-400">
+                  {selectedOption.description}
+                </div>
+              </div>
+
+              {/* Target Selection */}
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">
+                Select Target
               </div>
               <div className="mb-4 space-y-2">
                 {otherPlayers.map((player) => (
@@ -241,14 +305,14 @@ export function Prompting({
               <button
                 onClick={handleSabotage}
                 onMouseEnter={() => void playHover()}
-                disabled={!selectedVictimId}
+                disabled={!selectedVictimId || !canAffordSelected}
                 className={`w-full rounded-lg px-4 py-3 font-bold transition-all ${
-                  selectedVictimId
+                  selectedVictimId && canAffordSelected
                     ? 'bg-red-600 text-white hover:bg-red-500'
                     : 'cursor-not-allowed bg-gray-700 text-gray-500'
                 }`}
               >
-                💀 CONFIRM SABOTAGE (-{SABOTAGE_COST} tokens)
+                {selectedOption.emoji} CONFIRM {selectedOption.name.toUpperCase()} (-{selectedOption.cost} tokens)
               </button>
             </div>
           )}

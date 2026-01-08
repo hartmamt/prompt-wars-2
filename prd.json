@@ -465,7 +465,7 @@
         "Max 2 sabotages per player per game"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "Strategic sabotage options"
     },
     {
