@@ -297,7 +297,7 @@
         "Error handling for API failures"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Server-side avatar generation"
     },
     {

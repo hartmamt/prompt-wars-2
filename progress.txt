@@ -429,3 +429,25 @@
   - max-w-md is too narrow for desktop, use max-w-lg, max-w-2xl, max-w-4xl, max-w-6xl
   - Responsive padding (md:p-8 vs p-4) helps content breathe on larger screens
 ---
+
+## 2026-01-08 - US-019
+- What was implemented:
+  - POST /api/avatar/generate endpoint for AI avatar generation
+  - Accepts {photoBase64: string, style: string} request body
+  - Uses Gemini 2.0 Flash exp model for image-to-image transformation
+  - 5 avatar styles: cartoon, anime, pixel, fantasy, sketch
+  - Each style has tailored prompt for the transformation
+  - Input validation for photoBase64 and style fields
+  - 30-second timeout for generation
+  - Proper error handling for API failures and timeouts
+  - Returns generated avatar as base64 data URI
+- Files changed:
+  - server/src/geminiAvatar.ts (new file - avatar generation service)
+  - server/src/index.ts (added /api/avatar/generate endpoint)
+- **Learnings for future iterations:**
+  - Gemini 2.0 Flash exp supports image generation with responseModalities: ['image', 'text']
+  - Image input uses inlineData with mimeType and base64 data
+  - Express async route handlers need to use .then()/.catch() pattern to avoid lint errors
+  - isValidStyle type guard narrows string to AvatarStyle union type
+  - Style prompts should emphasize generating ONLY the image to avoid text responses
+---
