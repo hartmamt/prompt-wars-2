@@ -83,7 +83,7 @@
         "Theme data structure supports category filtering"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Core content that drives gameplay"
     },
     {

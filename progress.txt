@@ -10,6 +10,7 @@
 - Room management in server/src/roomManager.ts - use exported functions, not direct Map access
 - Socket handlers in server/src/socketHandlers.ts - all socket events defined here
 - Player/Room types in server/src/types.ts - MIN_PLAYERS=2, MAX_PLAYERS=8
+- Theme data in server/src/themes.ts - 175 themes, 7 categories, use getRandomTheme() with excludeIds
 
 ---
 
@@ -101,4 +102,19 @@
   - RoomState contains canStart boolean computed server-side
   - currentPlayerId from socket.id to identify self in player list
   - useCallback for socket event handlers to maintain stable references
+---
+
+## 2026-01-07 - US-005
+- What was implemented:
+  - 175 themes organized by 7 categories (25 each)
+  - Categories: Pop Culture, Absurd Scenarios, Mashups, Vibes, Challenges, Art Style Twists, Relatable Moments
+  - getRandomTheme() function with excludeIds Set to prevent repeats
+  - getThemesByCategory() for filtering
+  - Theme data structure with id, text, category
+- Files changed:
+  - server/src/themes.ts (theme data and helper functions)
+- **Learnings for future iterations:**
+  - Use Set<string> for excludeIds to track used themes per game session
+  - THEME_CATEGORIES array for UI category selectors
+  - Theme IDs follow pattern: {category-abbrev}-{number} (e.g., pc-1, as-25)
 ---
