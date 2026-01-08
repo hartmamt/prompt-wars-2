@@ -1088,3 +1088,33 @@ to a capable provider.
   3. Set environment variables with actual API keys
   4. Trigger deployment
 - Server and client builds verified passing
+
+## 2026-01-08 - US-037/US-038/US-039/US-040 Progress Update
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- **Status**: BLOCKED on Render MCP tools
+- **What was accomplished**:
+  - Fixed discord.ts to gracefully handle non-Discord environment (lazy SDK init)
+  - Local browser testing verified game flow works:
+    - Room creation with 4-character code (e.g., LLRN)
+    - Second player joining via room code
+    - Real-time player list updates via Socket.io
+    - Host can start game when 2+ players present
+    - Prompting phase with theme display and prompt submission
+    - All UI components render correctly
+  - Server and client builds pass all quality checks (lint, typecheck)
+  - Committed discord.ts fix: f868a74
+- **Blocking issues**:
+  - Render MCP tools returning "unknown error" - cannot deploy via MCP
+  - FAL_API_KEY not available for Flux image generation testing
+  - US-039 (Discord Activity) requires deployed URLs to configure
+- **Manual steps required to complete deployment**:
+  1. User must manually deploy via Render Dashboard using render.yaml
+  2. Set environment variables: GEMINI_API_KEY, FAL_API_KEY, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET
+  3. Configure Discord Developer Portal with deployed URLs
+  4. Run end-to-end test in both browser and Discord Activity
+- **Learnings for future iterations:**
+  - Discord SDK throws if `frame_id` query param missing - use lazy initialization
+  - Local browser testing is possible with graceful Discord SDK fallback
+  - Render MCP may have intermittent availability issues
+---
+
