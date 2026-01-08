@@ -208,3 +208,31 @@
   - Phase transitions triggered by events, not state comparison
   - Fake progress bar can go backwards occasionally for humor
 ---
+
+## 2026-01-07 - US-010
+- What was implemented:
+  - 60-second countdown timer per matchup
+  - Head-to-head display of two images
+  - Side-by-side flex layout on desktop (md:flex-row)
+  - Vote buttons for each image with player names
+  - Cannot vote for own image (disabled + "YOUR IMAGE" label)
+  - Visual feedback when vote cast (green border, "YOUR VOTE" overlay)
+  - Timer visible with pulse animation in last 10 seconds
+  - Round-robin matchup generation (all unique pairs)
+  - Server: Vote, Matchup types in types.ts
+  - Server: startVoting, castVote, advanceMatchup in roomManager.ts
+  - Socket events: voting-started, vote-cast, next-matchup, voting-complete
+  - Auto-advance to next matchup when all eligible voters vote
+- Files changed:
+  - server/src/types.ts (Vote, Matchup, VOTING_DURATION_MS, updated RoundState)
+  - server/src/roomManager.ts (generateMatchups, startVoting, castVote, advanceMatchup, etc.)
+  - server/src/socketHandlers.ts (cast-vote, advance-matchup handlers, handleVotingPhase)
+  - client/src/types.ts (MatchupData)
+  - client/src/components/Voting.tsx (new component)
+  - client/src/App.tsx (voting phase state and events, handleCastVote)
+- **Learnings for future iterations:**
+  - Eligible voters = all players except those in the current matchup
+  - Matchups shuffled for variety after round-robin generation
+  - Track votersWhoVoted array client-side to show progress
+  - Reset hasVoted state when matchup changes
+---

@@ -40,11 +40,29 @@ export interface GeneratedImage {
   generatedAt: Date;
 }
 
+export interface Vote {
+  voterId: string;
+  votedForPlayerId: string;
+  votedAt: Date;
+}
+
+export interface Matchup {
+  player1Id: string;
+  player2Id: string;
+  votes: Vote[];
+  startTime: Date;
+  endTime: Date;
+}
+
+export const VOTING_DURATION_MS = 60 * 1000; // 60 seconds per matchup
+
 export interface RoundState {
   themeId: string;
   themeText: string;
   prompts: Map<string, PlayerPrompt>;
   generatedImages: Map<string, GeneratedImage>;
+  matchups: Matchup[];
+  currentMatchupIndex: number;
   phaseStartTime: Date;
   phaseEndTime: Date;
 }

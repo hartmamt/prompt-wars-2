@@ -160,7 +160,7 @@
         "Auto-advance when timer expires"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Core competitive mechanic"
     },
     {

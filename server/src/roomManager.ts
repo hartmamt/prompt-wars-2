@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS } from './types.js';
 import { getRandomTheme } from './themes.js';
 
 const rooms = new Map<string, Room>();
@@ -230,6 +230,8 @@ export function startGame(socketId: string): StartGameResult {
     themeText: theme.text,
     prompts: new Map(),
     generatedImages: new Map(),
+    matchups: [],
+    currentMatchupIndex: 0,
     phaseStartTime: now,
     phaseEndTime: endTime,
   };
@@ -367,4 +369,259 @@ export function getGeneratedCount(room: Room): { generated: number; total: numbe
     generated: room.gameState.currentRound.generatedImages.size,
     total: room.gameState.currentRound.prompts.size,
   };
+}
+
+/**
+ * Generate all head-to-head matchups for players with successfully generated images
+ */
+function generateMatchups(playerIds: string[]): Matchup[] {
+  const matchups: Matchup[] = [];
+
+  // Generate all unique pairs (round-robin style)
+  for (let i = 0; i < playerIds.length; i++) {
+    for (let j = i + 1; j < playerIds.length; j++) {
+      const player1Id = playerIds[i];
+      const player2Id = playerIds[j];
+      if (player1Id && player2Id) {
+        // Randomize order for fairness
+        const [first, second] = Math.random() < 0.5
+          ? [player1Id, player2Id]
+          : [player2Id, player1Id];
+
+        matchups.push({
+          player1Id: first,
+          player2Id: second,
+          votes: [],
+          startTime: new Date(),
+          endTime: new Date(),
+        });
+      }
+    }
+  }
+
+  // Shuffle matchups for variety
+  for (let i = matchups.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = matchups[i];
+    const swap = matchups[j];
+    if (temp && swap) {
+      matchups[i] = swap;
+      matchups[j] = temp;
+    }
+  }
+
+  return matchups;
+}
+
+export interface StartVotingResult {
+  success: boolean;
+  error?: string;
+  room?: Room;
+  matchup?: {
+    player1Id: string;
+    player2Id: string;
+    player1Image: string | null;
+    player2Image: string | null;
+    endTime: string;
+  };
+}
+
+export function startVoting(roomCode: string): StartVotingResult {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  if (room.gameState.phase !== 'generating') {
+    return { success: false, error: 'Not in generating phase' };
+  }
+
+  if (!room.gameState.currentRound) {
+    return { success: false, error: 'No active round' };
+  }
+
+  // Get players with successfully generated images
+  const playersWithImages = Array.from(room.gameState.currentRound.generatedImages.entries())
+    .filter(([, img]) => img.imageBase64 !== null)
+    .map(([playerId]) => playerId);
+
+  if (playersWithImages.length < 2) {
+    return { success: false, error: 'Not enough images to vote' };
+  }
+
+  // Generate matchups
+  const matchups = generateMatchups(playersWithImages);
+  room.gameState.currentRound.matchups = matchups;
+  room.gameState.currentRound.currentMatchupIndex = 0;
+
+  // Set up first matchup timing
+  const now = new Date();
+  const endTime = new Date(now.getTime() + VOTING_DURATION_MS);
+  const firstMatchup = matchups[0];
+  if (firstMatchup) {
+    firstMatchup.startTime = now;
+    firstMatchup.endTime = endTime;
+  }
+
+  // Transition to voting phase
+  room.gameState.phase = 'voting';
+
+  // Get first matchup data
+  if (firstMatchup) {
+    const player1Image = room.gameState.currentRound.generatedImages.get(firstMatchup.player1Id);
+    const player2Image = room.gameState.currentRound.generatedImages.get(firstMatchup.player2Id);
+
+    return {
+      success: true,
+      room,
+      matchup: {
+        player1Id: firstMatchup.player1Id,
+        player2Id: firstMatchup.player2Id,
+        player1Image: player1Image?.imageBase64 ?? null,
+        player2Image: player2Image?.imageBase64 ?? null,
+        endTime: firstMatchup.endTime.toISOString(),
+      },
+    };
+  }
+
+  return { success: false, error: 'Failed to create matchups' };
+}
+
+export interface CastVoteResult {
+  success: boolean;
+  error?: string;
+  allVoted?: boolean;
+}
+
+export function castVote(socketId: string, votedForPlayerId: string): CastVoteResult {
+  const room = getRoomBySocketId(socketId);
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  if (room.gameState.phase !== 'voting') {
+    return { success: false, error: 'Not in voting phase' };
+  }
+
+  if (!room.gameState.currentRound) {
+    return { success: false, error: 'No active round' };
+  }
+
+  const currentMatchup = room.gameState.currentRound.matchups[room.gameState.currentRound.currentMatchupIndex];
+  if (!currentMatchup) {
+    return { success: false, error: 'No current matchup' };
+  }
+
+  // Cannot vote for own image
+  if (socketId === votedForPlayerId) {
+    return { success: false, error: 'Cannot vote for your own image' };
+  }
+
+  // Check if this player is in the matchup
+  if (votedForPlayerId !== currentMatchup.player1Id && votedForPlayerId !== currentMatchup.player2Id) {
+    return { success: false, error: 'Invalid vote target' };
+  }
+
+  // Check if already voted
+  if (currentMatchup.votes.some((v) => v.voterId === socketId)) {
+    return { success: false, error: 'Already voted' };
+  }
+
+  // Record the vote
+  const vote: Vote = {
+    voterId: socketId,
+    votedForPlayerId,
+    votedAt: new Date(),
+  };
+  currentMatchup.votes.push(vote);
+
+  // Check if all eligible voters have voted
+  // Eligible voters = all players except the two in the matchup
+  const eligibleVoters = Array.from(room.players.keys()).filter(
+    (id) => id !== currentMatchup.player1Id && id !== currentMatchup.player2Id
+  );
+  const allVoted = eligibleVoters.every((voterId) =>
+    currentMatchup.votes.some((v) => v.voterId === voterId)
+  );
+
+  return { success: true, allVoted };
+}
+
+export interface AdvanceMatchupResult {
+  success: boolean;
+  error?: string;
+  room?: Room;
+  isComplete: boolean;
+  nextMatchup?: {
+    player1Id: string;
+    player2Id: string;
+    player1Image: string | null;
+    player2Image: string | null;
+    endTime: string;
+    matchupIndex: number;
+    totalMatchups: number;
+  };
+}
+
+export function advanceMatchup(roomCode: string): AdvanceMatchupResult {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) {
+    return { success: false, error: 'Room not found', isComplete: false };
+  }
+
+  if (!room.gameState.currentRound) {
+    return { success: false, error: 'No active round', isComplete: false };
+  }
+
+  const nextIndex = room.gameState.currentRound.currentMatchupIndex + 1;
+  const totalMatchups = room.gameState.currentRound.matchups.length;
+
+  // Check if all matchups are complete
+  if (nextIndex >= totalMatchups) {
+    return { success: true, room, isComplete: true };
+  }
+
+  // Advance to next matchup
+  room.gameState.currentRound.currentMatchupIndex = nextIndex;
+  const nextMatchup = room.gameState.currentRound.matchups[nextIndex];
+
+  if (!nextMatchup) {
+    return { success: false, error: 'Failed to get next matchup', isComplete: false };
+  }
+
+  // Set up timing for next matchup
+  const now = new Date();
+  const endTime = new Date(now.getTime() + VOTING_DURATION_MS);
+  nextMatchup.startTime = now;
+  nextMatchup.endTime = endTime;
+
+  const player1Image = room.gameState.currentRound.generatedImages.get(nextMatchup.player1Id);
+  const player2Image = room.gameState.currentRound.generatedImages.get(nextMatchup.player2Id);
+
+  return {
+    success: true,
+    room,
+    isComplete: false,
+    nextMatchup: {
+      player1Id: nextMatchup.player1Id,
+      player2Id: nextMatchup.player2Id,
+      player1Image: player1Image?.imageBase64 ?? null,
+      player2Image: player2Image?.imageBase64 ?? null,
+      endTime: endTime.toISOString(),
+      matchupIndex: nextIndex,
+      totalMatchups,
+    },
+  };
+}
+
+export function getCurrentMatchupVotes(room: Room): { voterId: string }[] {
+  if (!room.gameState.currentRound) return [];
+  const matchup = room.gameState.currentRound.matchups[room.gameState.currentRound.currentMatchupIndex];
+  if (!matchup) return [];
+  return matchup.votes.map((v) => ({ voterId: v.voterId }));
+}
+
+export function getPlayerName(room: Room, playerId: string): string {
+  const player = room.players.get(playerId);
+  return player?.name ?? 'Unknown';
 }

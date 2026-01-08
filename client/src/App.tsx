@@ -5,7 +5,8 @@ import { Home } from './components/Home';
 import { Lobby } from './components/Lobby';
 import { Prompting } from './components/Prompting';
 import { Generating } from './components/Generating';
-import type { RoomState, GamePhase, Player, CategorySelection, GameState } from './types';
+import { Voting } from './components/Voting';
+import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData } from './types';
 
 interface RoomResponse {
   success: boolean;
@@ -55,6 +56,24 @@ interface GeneratingCompleteEvent {
   gameState: GameState;
 }
 
+interface VotingStartedEvent {
+  gameState: GameState;
+  matchup: MatchupData;
+}
+
+interface VoteCastEvent {
+  voterId: string;
+  votersWhoVoted: string[];
+}
+
+interface NextMatchupEvent {
+  matchup: MatchupData;
+}
+
+interface VotingCompleteEvent {
+  gameState: GameState | null;
+}
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
@@ -67,6 +86,9 @@ function App() {
   const [generatedCount, setGeneratedCount] = useState(0);
   const [totalImagesToGenerate, setTotalImagesToGenerate] = useState(0);
   const [hasGenerationError, setHasGenerationError] = useState(false);
+  const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
+  const [votersWhoVoted, setVotersWhoVoted] = useState<string[]>([]);
+  const [hasVoted, setHasVoted] = useState(false);
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -155,7 +177,36 @@ function App() {
 
     const onGeneratingComplete = (data: GeneratingCompleteEvent) => {
       setGameState(data.gameState);
-      // Phase will transition to voting in US-010
+    };
+
+    const onVotingStarted = (data: VotingStartedEvent) => {
+      setGameState(data.gameState);
+      setPhase('voting');
+      setCurrentMatchup(data.matchup);
+      setVotersWhoVoted([]);
+      setHasVoted(false);
+    };
+
+    const onVoteCast = (data: VoteCastEvent) => {
+      setVotersWhoVoted(data.votersWhoVoted);
+      // Check if current player has voted
+      if (data.voterId === currentPlayerId) {
+        setHasVoted(true);
+      }
+    };
+
+    const onNextMatchup = (data: NextMatchupEvent) => {
+      setCurrentMatchup(data.matchup);
+      setVotersWhoVoted([]);
+      setHasVoted(false);
+    };
+
+    const onVotingComplete = (data: VotingCompleteEvent) => {
+      if (data.gameState) {
+        setGameState(data.gameState);
+      }
+      // Phase will transition to results in US-012
+      setPhase('results');
     };
 
     socket.on('connect', onConnect);
@@ -168,6 +219,10 @@ function App() {
     socket.on('generating-started', onGeneratingStarted);
     socket.on('image-generated', onImageGenerated);
     socket.on('generating-complete', onGeneratingComplete);
+    socket.on('voting-started', onVotingStarted);
+    socket.on('vote-cast', onVoteCast);
+    socket.on('next-matchup', onNextMatchup);
+    socket.on('voting-complete', onVotingComplete);
 
     // Check if already connected
     if (socket.connected) {
@@ -185,6 +240,10 @@ function App() {
       socket.off('generating-started', onGeneratingStarted);
       socket.off('image-generated', onImageGenerated);
       socket.off('generating-complete', onGeneratingComplete);
+      socket.off('voting-started', onVotingStarted);
+      socket.off('vote-cast', onVoteCast);
+      socket.off('next-matchup', onNextMatchup);
+      socket.off('voting-complete', onVotingComplete);
     };
   }, [currentPlayerId]);
 
@@ -254,6 +313,14 @@ function App() {
     });
   }, []);
 
+  const handleCastVote = useCallback((votedForPlayerId: string) => {
+    socket.emit('cast-vote', { votedForPlayerId }, (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error ?? 'Failed to cast vote');
+      }
+    });
+  }, []);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-prompt-black">
@@ -283,6 +350,25 @@ function App() {
         generatedCount={generatedCount}
         totalCount={totalImagesToGenerate}
         hasError={hasGenerationError}
+      />
+    );
+  }
+
+  // Voting phase
+  if (phase === 'voting' && currentMatchup && room) {
+    // Calculate eligible voters (everyone except those in the matchup)
+    const eligibleVoters = room.players.filter(
+      (p) => p.id !== currentMatchup.player1Id && p.id !== currentMatchup.player2Id
+    );
+
+    return (
+      <Voting
+        matchup={currentMatchup}
+        currentPlayerId={currentPlayerId}
+        votersWhoVoted={votersWhoVoted}
+        totalVoters={eligibleVoters.length}
+        hasVoted={hasVoted}
+        onCastVote={handleCastVote}
       />
     );
   }

@@ -14,6 +14,12 @@ import {
   storeGeneratedImage,
   getGeneratedCount,
   getRoom,
+  startVoting,
+  castVote,
+  advanceMatchup,
+  getCurrentMatchupVotes,
+  getPlayerName,
+  getRoomBySocketId,
 } from './roomManager.js';
 import { generateImage } from './flux.js';
 import type { Player, Room, CategorySelection, GamePhase } from './types.js';
@@ -172,6 +178,91 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       }
     });
 
+    // Cast vote
+    socket.on('cast-vote', (data: { votedForPlayerId: string }, callback: (response: { success: boolean; error?: string }) => void) => {
+      const result = castVote(socket.id, data.votedForPlayerId);
+
+      if (!result.success) {
+        callback({ success: false, error: result.error });
+        return;
+      }
+
+      const room = getRoomBySocketId(socket.id);
+      if (!room) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      // Notify all players about the vote (just that someone voted, not who they voted for)
+      io.to(room.code).emit('vote-cast', {
+        voterId: socket.id,
+        votersWhoVoted: getCurrentMatchupVotes(room).map((v) => v.voterId),
+      });
+
+      callback({ success: true });
+
+      // If all eligible players have voted, advance to next matchup
+      if (result.allVoted) {
+        const advanceResult = advanceMatchup(room.code);
+
+        if (advanceResult.isComplete) {
+          // All matchups complete - transition to results phase (US-012)
+          io.to(room.code).emit('voting-complete', {
+            gameState: advanceResult.room ? gameStateToResponse(advanceResult.room) : null,
+          });
+        } else if (advanceResult.nextMatchup) {
+          // Emit next matchup
+          const player1Name = getPlayerName(room, advanceResult.nextMatchup.player1Id);
+          const player2Name = getPlayerName(room, advanceResult.nextMatchup.player2Id);
+
+          io.to(room.code).emit('next-matchup', {
+            matchup: {
+              ...advanceResult.nextMatchup,
+              player1Name,
+              player2Name,
+            },
+          });
+        }
+      }
+    });
+
+    // Force advance matchup (for timer expiry)
+    socket.on('advance-matchup', (callback: (response: { success: boolean; error?: string }) => void) => {
+      const room = getRoomBySocketId(socket.id);
+      if (!room) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      // Only host can force advance
+      const player = room.players.get(socket.id);
+      if (!player?.isHost) {
+        callback({ success: false, error: 'Only host can advance matchup' });
+        return;
+      }
+
+      const advanceResult = advanceMatchup(room.code);
+
+      if (advanceResult.isComplete) {
+        io.to(room.code).emit('voting-complete', {
+          gameState: advanceResult.room ? gameStateToResponse(advanceResult.room) : null,
+        });
+      } else if (advanceResult.nextMatchup) {
+        const player1Name = getPlayerName(room, advanceResult.nextMatchup.player1Id);
+        const player2Name = getPlayerName(room, advanceResult.nextMatchup.player2Id);
+
+        io.to(room.code).emit('next-matchup', {
+          matchup: {
+            ...advanceResult.nextMatchup,
+            player1Name,
+            player2Name,
+          },
+        });
+      }
+
+      callback({ success: true });
+    });
+
     // Disconnect handling
     socket.on('disconnect', () => {
       console.log(`Client disconnected: ${socket.id}`);
@@ -249,5 +340,35 @@ async function handleGeneratingPhase(io: SocketIOServer, roomCode: string): Prom
     io.to(roomCode).emit('generating-complete', {
       gameState: gameStateToResponse(finalRoom),
     });
+
+    // Automatically transition to voting phase
+    void handleVotingPhase(io, roomCode);
   }
+}
+
+function handleVotingPhase(io: SocketIOServer, roomCode: string): void {
+  const result = startVoting(roomCode);
+
+  if (!result.success || !result.room || !result.matchup) {
+    console.error('Failed to start voting:', result.error);
+    return;
+  }
+
+  const room = result.room;
+
+  // Get player names for the matchup
+  const player1Name = getPlayerName(room, result.matchup.player1Id);
+  const player2Name = getPlayerName(room, result.matchup.player2Id);
+
+  // Notify all players that voting has started
+  io.to(roomCode).emit('voting-started', {
+    gameState: gameStateToResponse(room),
+    matchup: {
+      ...result.matchup,
+      player1Name,
+      player2Name,
+      matchupIndex: 0,
+      totalMatchups: room.gameState.currentRound?.matchups.length ?? 0,
+    },
+  });
 }

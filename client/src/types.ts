@@ -44,6 +44,18 @@ export interface CurrentRoundState {
   submittedPlayerIds: string[];
 }
 
+export interface MatchupData {
+  player1Id: string;
+  player2Id: string;
+  player1Name: string;
+  player2Name: string;
+  player1Image: string | null;
+  player2Image: string | null;
+  endTime: string;
+  matchupIndex: number;
+  totalMatchups: number;
+}
+
 export interface GameState {
   phase: GamePhase;
   round: number;
