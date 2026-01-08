@@ -359,3 +359,30 @@
   - Emojis work well in button text for visual emphasis
   - Keep placeholder text on-brand too ("Choose wisely, champion...")
 ---
+
+## 2026-01-07 - US-016
+- What was implemented:
+  - Added "Press Start 2P" Google Font for arcade-style headers (font-display class)
+  - Global CRT scanline overlay via index.html (crt-overlay class, opacity: 3%)
+  - Holographic animated border effect (holo-border class) using gradient border-box trick
+  - Terminal-style button class (terminal-btn) with "> " prefix and monospace font
+  - Glitch text animation keyframes (glitch-text class with data-text attribute)
+  - Tailwind animations: glitch, scanline, holographic
+  - Updated key headers to use font-display: Home title, Lobby header, Results, FinalResults
+  - Room code card uses holographic border effect
+  - Color palette confirmed: prompt-purple, prompt-pink, prompt-green, prompt-black
+  - Monospace font already used throughout for timers, codes, prompts
+- Files changed:
+  - client/tailwind.config.js (font-display, animations, keyframes)
+  - client/src/index.css (Google Font import, CRT overlay, holo-border, terminal-btn, glitch-text)
+  - client/index.html (added crt-overlay div)
+  - client/src/components/Home.tsx (font-display)
+  - client/src/components/Lobby.tsx (font-display, holo-border, terminal-btn)
+  - client/src/components/Results.tsx (font-display)
+  - client/src/components/FinalResults.tsx (font-display)
+- **Learnings for future iterations:**
+  - Holographic border uses background with padding-box/border-box trick for animated gradient borders
+  - CRT overlay should be subtle (3% opacity) to not interfere with readability
+  - "Press Start 2P" is quite chunky, use smaller sizes than regular fonts
+  - Terminal-btn uses ::before pseudo-element for "> " prefix
+---

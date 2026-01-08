@@ -251,7 +251,7 @@
         "Cards with holographic/iridescent borders"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Visual identity"
     },
     {
