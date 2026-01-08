@@ -486,3 +486,386 @@ export function playVoteCast(): void {
     gain1.disconnect();
   };
 }
+
+// ===========================================
+// Results & Ambience Sounds (US-025)
+// ===========================================
+
+// Score tick up: rapid ascending blips (call multiple times for animation)
+export function playScoreTick(index: number, total: number): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  // Pitch rises through the sequence
+  const progress = index / Math.max(total, 1);
+  const freq = 400 + progress * 800; // 400Hz to 1200Hz
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, now);
+
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.2, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.08);
+
+  osc.onended = () => {
+    osc.disconnect();
+    gain.disconnect();
+  };
+}
+
+// Round win: triumphant synth fanfare
+export function playRoundWin(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Triumphant fanfare chord progression: C major -> G major
+  const chords = [
+    { notes: [523.25, 659.25, 783.99], time: 0 },      // C5, E5, G5 (C major)
+    { notes: [783.99, 987.77, 1174.66], time: 0.25 },  // G5, B5, D6 (G major)
+  ];
+
+  chords.forEach(chord => {
+    chord.notes.forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + chord.time);
+
+      gain.gain.setValueAtTime(0, now + chord.time);
+      gain.gain.linearRampToValueAtTime(0.12, now + chord.time + 0.02);
+      gain.gain.setValueAtTime(0.12, now + chord.time + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + chord.time + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + chord.time);
+      osc.stop(now + chord.time + 0.4);
+
+      osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+    });
+  });
+
+  // Cymbal-like shimmer
+  const shimmerOsc = ctx.createOscillator();
+  const shimmerGain = ctx.createGain();
+  shimmerOsc.type = 'sawtooth';
+  shimmerOsc.frequency.setValueAtTime(2000, now);
+  shimmerOsc.frequency.exponentialRampToValueAtTime(4000, now + 0.1);
+  shimmerGain.gain.setValueAtTime(0, now);
+  shimmerGain.gain.linearRampToValueAtTime(0.1, now + 0.01);
+  shimmerGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+  shimmerOsc.connect(shimmerGain);
+  shimmerGain.connect(ctx.destination);
+  shimmerOsc.start(now);
+  shimmerOsc.stop(now + 0.6);
+
+  shimmerOsc.onended = () => { shimmerOsc.disconnect(); shimmerGain.disconnect(); };
+}
+
+// Round lose: comedic descending tones
+export function playRoundLose(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Sad descending trombone-like sound
+  const tones = [400, 350, 300, 200]; // Descending pitches
+
+  tones.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    const startTime = now + i * 0.12;
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, startTime);
+    // Slight pitch bend down for comedic effect
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.9, startTime + 0.1);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, startTime);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.25, startTime + 0.02);
+    gain.gain.setValueAtTime(0.25, startTime + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + 0.2);
+
+    osc.onended = () => { osc.disconnect(); filter.disconnect(); gain.disconnect(); };
+  });
+}
+
+// Final victory: extended celebration sequence
+export function playFinalVictory(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  const now = ctx.currentTime;
+
+  // Epic fanfare: ascending arpeggios building to chord
+  const arpeggioNotes = [
+    { freq: 261.63, time: 0 },      // C4
+    { freq: 329.63, time: 0.08 },   // E4
+    { freq: 392.00, time: 0.16 },   // G4
+    { freq: 523.25, time: 0.24 },   // C5
+    { freq: 659.25, time: 0.32 },   // E5
+    { freq: 783.99, time: 0.40 },   // G5
+  ];
+
+  arpeggioNotes.forEach(note => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(note.freq, now + note.time);
+
+    gain.gain.setValueAtTime(0, now + note.time);
+    gain.gain.linearRampToValueAtTime(0.2, now + note.time + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.05, now + note.time + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now + note.time);
+    osc.stop(now + 1.0);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  });
+
+  // Final triumphant chord at 0.5s
+  const finalChord = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+  finalChord.forEach(freq => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, now + 0.5);
+
+    gain.gain.setValueAtTime(0, now + 0.5);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.52);
+    gain.gain.setValueAtTime(0.15, now + 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now + 0.5);
+    osc.stop(now + 1.6);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+  });
+
+  // Victory shimmer/sparkle
+  for (let i = 0; i < 6; i++) {
+    const sparkleOsc = ctx.createOscillator();
+    const sparkleGain = ctx.createGain();
+
+    const sparkleTime = now + 0.6 + i * 0.1;
+    const sparkleFreq = 2000 + Math.random() * 2000;
+
+    sparkleOsc.type = 'sine';
+    sparkleOsc.frequency.setValueAtTime(sparkleFreq, sparkleTime);
+
+    sparkleGain.gain.setValueAtTime(0, sparkleTime);
+    sparkleGain.gain.linearRampToValueAtTime(0.08, sparkleTime + 0.01);
+    sparkleGain.gain.exponentialRampToValueAtTime(0.01, sparkleTime + 0.15);
+
+    sparkleOsc.connect(sparkleGain);
+    sparkleGain.connect(ctx.destination);
+
+    sparkleOsc.start(sparkleTime);
+    sparkleOsc.stop(sparkleTime + 0.2);
+
+    sparkleOsc.onended = () => { sparkleOsc.disconnect(); sparkleGain.disconnect(); };
+  }
+}
+
+// AI processing ambience: low drone with glitch pops
+// Returns stop function to end the ambience
+let processingAmbienceInterval: number | null = null;
+let processingOscillators: OscillatorNode[] = [];
+let processingGains: GainNode[] = [];
+
+export function startProcessingAmbience(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  stopProcessingAmbience(); // Clean up any existing
+
+  const now = ctx.currentTime;
+
+  // Low drone
+  const droneOsc = ctx.createOscillator();
+  const droneGain = ctx.createGain();
+  const droneFilter = ctx.createBiquadFilter();
+
+  droneOsc.type = 'sawtooth';
+  droneOsc.frequency.setValueAtTime(50, now);
+
+  droneFilter.type = 'lowpass';
+  droneFilter.frequency.setValueAtTime(100, now);
+  droneFilter.Q.setValueAtTime(5, now);
+
+  droneGain.gain.setValueAtTime(0, now);
+  droneGain.gain.linearRampToValueAtTime(0.08, now + 0.5);
+
+  droneOsc.connect(droneFilter);
+  droneFilter.connect(droneGain);
+  droneGain.connect(ctx.destination);
+
+  droneOsc.start(now);
+  processingOscillators.push(droneOsc);
+  processingGains.push(droneGain);
+
+  // Periodic glitch pops
+  processingAmbienceInterval = window.setInterval(() => {
+    if (audioEngine.getMuted()) return;
+    const popCtx = (audioEngine as unknown as { context: AudioContext | null }).context;
+    if (!popCtx) return;
+
+    const popNow = popCtx.currentTime;
+    const popOsc = popCtx.createOscillator();
+    const popGain = popCtx.createGain();
+
+    popOsc.type = 'square';
+    popOsc.frequency.setValueAtTime(100 + Math.random() * 300, popNow);
+
+    popGain.gain.setValueAtTime(0, popNow);
+    popGain.gain.linearRampToValueAtTime(0.1, popNow + 0.005);
+    popGain.gain.linearRampToValueAtTime(0, popNow + 0.02);
+
+    popOsc.connect(popGain);
+    popGain.connect(popCtx.destination);
+
+    popOsc.start(popNow);
+    popOsc.stop(popNow + 0.05);
+
+    popOsc.onended = () => { popOsc.disconnect(); popGain.disconnect(); };
+  }, 300 + Math.random() * 400);
+}
+
+export function stopProcessingAmbience(): void {
+  if (processingAmbienceInterval !== null) {
+    clearInterval(processingAmbienceInterval);
+    processingAmbienceInterval = null;
+  }
+
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (ctx) {
+    const now = ctx.currentTime;
+    processingGains.forEach(gain => {
+      gain.gain.linearRampToValueAtTime(0, now + 0.3);
+    });
+    setTimeout(() => {
+      processingOscillators.forEach(osc => {
+        try { osc.stop(); } catch { /* already stopped */ }
+        osc.disconnect();
+      });
+      processingGains.forEach(gain => gain.disconnect());
+      processingOscillators = [];
+      processingGains = [];
+    }, 400);
+  } else {
+    processingOscillators = [];
+    processingGains = [];
+  }
+}
+
+// Lobby ambience: subtle synthetic hum
+let lobbyAmbienceOsc: OscillatorNode | null = null;
+let lobbyAmbienceGain: GainNode | null = null;
+
+export function startLobbyAmbience(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx || audioEngine.getMuted()) return;
+
+  stopLobbyAmbience(); // Clean up any existing
+
+  const now = ctx.currentTime;
+
+  // Subtle synthetic hum with slight modulation
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  // LFO for subtle modulation
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  lfo.type = 'sine';
+  lfo.frequency.setValueAtTime(0.3, now); // Very slow modulation
+  lfoGain.gain.setValueAtTime(3, now); // Subtle pitch variation
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(80, now);
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(200, now);
+
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.04, now + 1);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  lfo.start(now);
+
+  lobbyAmbienceOsc = osc;
+  lobbyAmbienceGain = gain;
+}
+
+export function stopLobbyAmbience(): void {
+  const ctx = (audioEngine as unknown as { context: AudioContext | null }).context;
+  if (!ctx) {
+    lobbyAmbienceOsc = null;
+    lobbyAmbienceGain = null;
+    return;
+  }
+
+  if (lobbyAmbienceGain) {
+    const now = ctx.currentTime;
+    lobbyAmbienceGain.gain.linearRampToValueAtTime(0, now + 0.5);
+
+    const oscRef = lobbyAmbienceOsc;
+    const gainRef = lobbyAmbienceGain;
+
+    setTimeout(() => {
+      if (oscRef) {
+        try { oscRef.stop(); } catch { /* already stopped */ }
+        oscRef.disconnect();
+      }
+      if (gainRef) {
+        gainRef.disconnect();
+      }
+    }, 600);
+  }
+
+  lobbyAmbienceOsc = null;
+  lobbyAmbienceGain = null;
+}

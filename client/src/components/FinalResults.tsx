@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { LeaderboardEntry } from '../types';
-import { playClick, playHover, playNavigate } from '../sounds';
+import { playClick, playHover, playNavigate, playFinalVictory, playRoundLose } from '../sounds';
 
 interface FinalResultsProps {
   leaderboard: LeaderboardEntry[];
@@ -34,6 +35,19 @@ export function FinalResults({
 }: FinalResultsProps) {
   const winner = leaderboard[0];
   const others = leaderboard.slice(1);
+  const hasPlayedSound = useRef(false);
+
+  // Play victory/lose sound on mount
+  useEffect(() => {
+    if (hasPlayedSound.current) return;
+    hasPlayedSound.current = true;
+
+    if (winner?.playerId === currentPlayerId) {
+      playFinalVictory();
+    } else {
+      playRoundLose();
+    }
+  }, [winner, currentPlayerId]);
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4 md:p-8">

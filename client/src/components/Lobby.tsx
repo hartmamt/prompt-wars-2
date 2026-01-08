@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import type { RoomState, Player, CategorySelection } from '../types';
 import { CATEGORY_OPTIONS } from '../types';
 import { AvatarSelector } from './AvatarSelector';
-import { playClick, playHover } from '../sounds';
+import { playClick, playHover, startLobbyAmbience, stopLobbyAmbience } from '../sounds';
 
 interface LobbyProps {
   room: RoomState;
@@ -68,6 +69,14 @@ export function Lobby({
   const isHost = currentPlayer?.isHost ?? false;
   const isReady = currentPlayer?.isReady ?? false;
   const currentAvatar = currentPlayer?.avatar ?? null;
+
+  // Start/stop lobby ambience
+  useEffect(() => {
+    startLobbyAmbience();
+    return () => {
+      stopLobbyAmbience();
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4 md:p-8">

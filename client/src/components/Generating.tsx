@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { playImageReveal } from '../sounds';
+import { playImageReveal, startProcessingAmbience, stopProcessingAmbience } from '../sounds';
 
 interface GeneratingProps {
   generatedCount: number;
@@ -42,6 +42,14 @@ export function Generating({ generatedCount, totalCount, hasError }: GeneratingP
     }
     prevGeneratedCountRef.current = generatedCount;
   }, [generatedCount]);
+
+  // Start/stop processing ambience
+  useEffect(() => {
+    startProcessingAmbience();
+    return () => {
+      stopProcessingAmbience();
+    };
+  }, []);
 
   // Rotate loading messages
   useEffect(() => {

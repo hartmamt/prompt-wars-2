@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { LeaderboardEntry } from '../types';
-import { playClick, playHover, playNavigate } from '../sounds';
+import { playClick, playHover, playNavigate, playRoundWin, playRoundLose } from '../sounds';
 
 interface RoundWinner {
   playerId: string;
@@ -31,6 +32,23 @@ export function Results({
   onContinue,
   isHost,
 }: ResultsProps) {
+  const hasPlayedSound = useRef(false);
+
+  // Play win/lose sound on mount
+  useEffect(() => {
+    if (hasPlayedSound.current) return;
+    hasPlayedSound.current = true;
+
+    if (roundWinner?.playerId === currentPlayerId) {
+      playRoundWin();
+    } else {
+      // Only play lose sound if there was a winner (not a tie/no winner)
+      if (roundWinner) {
+        playRoundLose();
+      }
+    }
+  }, [roundWinner, currentPlayerId]);
+
   return (
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4 md:p-8">
       {/* Round header */}

@@ -596,3 +596,36 @@
   - Countdown sounds should only play in final portion of timer (30s for prompting, 15s for voting)
   - Phase transitions include lobby→prompting but not home→lobby
 ---
+
+## 2026-01-08 - US-025
+- What was implemented:
+  - Results & ambience sounds in sounds.ts module:
+    - playScoreTick(index, total): rapid ascending blips with pitch rising through sequence
+    - playRoundWin(): triumphant synth fanfare (C major → G major chord progression with shimmer)
+    - playRoundLose(): comedic descending tones (sad trombone-like with pitch bends)
+    - playFinalVictory(): extended celebration sequence (ascending arpeggio + triumphant chord + sparkles)
+    - startProcessingAmbience()/stopProcessingAmbience(): low drone with periodic glitch pops
+    - startLobbyAmbience()/stopLobbyAmbience(): subtle synthetic hum with LFO modulation
+  - Results.tsx integration:
+    - playRoundWin() when current player is round winner
+    - playRoundLose() when another player wins the round
+  - FinalResults.tsx integration:
+    - playFinalVictory() when current player is game winner
+    - playRoundLose() for non-winners
+  - Generating.tsx integration:
+    - startProcessingAmbience() on mount, stopProcessingAmbience() on unmount
+  - Lobby.tsx integration:
+    - startLobbyAmbience() on mount, stopLobbyAmbience() on unmount
+- Files changed:
+  - client/src/sounds.ts (added 6 results/ambience sound functions)
+  - client/src/components/Results.tsx (round win/lose sounds)
+  - client/src/components/FinalResults.tsx (final victory/lose sounds)
+  - client/src/components/Generating.tsx (processing ambience)
+  - client/src/components/Lobby.tsx (lobby ambience)
+- **Learnings for future iterations:**
+  - Module-level variables for continuous sounds (lobbyAmbienceOsc, processingAmbienceInterval)
+  - useEffect cleanup functions for stopping continuous sounds on unmount
+  - LFO (Low Frequency Oscillator) connected to frequency parameter for subtle pitch variation
+  - setInterval for periodic random glitch pops in ambience
+  - hasPlayedSound ref prevents duplicate sound plays on re-renders
+---

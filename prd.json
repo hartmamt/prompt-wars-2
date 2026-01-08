@@ -388,7 +388,7 @@
         "Lobby ambience: subtle synthetic hum"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Emotional audio feedback"
     },
     {
