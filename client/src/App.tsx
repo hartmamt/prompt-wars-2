@@ -10,7 +10,7 @@ import { Results } from './components/Results';
 import { FinalResults } from './components/FinalResults';
 import { audioEngine } from './audioEngine';
 import { playPhaseTransition } from './sounds';
-import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
+import type { RoomState, GamePhase, Player, CategorySelection, ModelProvider, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
 
 interface RoomResponse {
   success: boolean;
@@ -426,6 +426,10 @@ function App() {
     socket.emit('set-category', { category });
   }, []);
 
+  const handleSetModelProvider = useCallback((modelProvider: ModelProvider) => {
+    socket.emit('set-model-provider', { modelProvider });
+  }, []);
+
   const handleAvatarChange = useCallback((avatar: string | null) => {
     if (avatar) {
       socket.emit('update-avatar', { avatar });
@@ -628,6 +632,7 @@ function App() {
           onLeaveRoom={handleLeaveRoom}
           onToggleReady={handleToggleReady}
           onSetCategory={handleSetCategory}
+          onSetModelProvider={handleSetModelProvider}
           onAvatarChange={handleAvatarChange}
         />
         <MuteButton />

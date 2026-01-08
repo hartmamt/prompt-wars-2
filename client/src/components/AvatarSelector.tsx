@@ -16,6 +16,7 @@ interface AvatarSelectorProps {
   currentAvatar: string | null;
   onAvatarChange: (avatar: string | null) => void;
   disabled?: boolean;
+  aiAvatarsEnabled?: boolean;
 }
 
 function cropToSquare(file: File): Promise<string> {
@@ -61,6 +62,7 @@ export function AvatarSelector({
   currentAvatar,
   onAvatarChange,
   disabled = false,
+  aiAvatarsEnabled = true,
 }: AvatarSelectorProps) {
   const [selectedOption, setSelectedOption] = useState<AvatarOption>('discord');
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
@@ -242,14 +244,16 @@ export function AvatarSelector({
         </button>
         <button
           onClick={() => handleOptionChange('ai')}
-          disabled={disabled}
+          disabled={disabled || !aiAvatarsEnabled}
+          title={!aiAvatarsEnabled ? 'AI avatars require Nano Banana model' : undefined}
           className={`rounded-lg border-2 p-3 text-xs font-bold transition-all md:text-sm ${
             selectedOption === 'ai'
               ? 'border-prompt-purple bg-prompt-purple/20 text-prompt-purple'
               : 'border-gray-700 text-gray-400 hover:border-gray-600'
-          } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+          } ${disabled || !aiAvatarsEnabled ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           AI Style
+          {!aiAvatarsEnabled && <span className="block text-[10px] text-gray-500 mt-0.5">N/A</span>}
         </button>
       </div>
 

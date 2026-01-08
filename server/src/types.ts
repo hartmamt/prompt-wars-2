@@ -27,6 +27,13 @@ export type CategorySelection =
   | 'Art Style Twists'
   | 'Relatable Moments';
 
+export type ModelProvider = 'flux-schnell' | 'nano-banana';
+
+export const MODEL_PROVIDERS: { id: ModelProvider; name: string; description: string }[] = [
+  { id: 'flux-schnell', name: 'Flux Schnell', description: 'Fast & cheap (~$0.003/image)' },
+  { id: 'nano-banana', name: 'Nano Banana', description: 'Full features (AI avatars, @mentions)' },
+];
+
 export interface PlayerPrompt {
   playerId: string;
   prompt: string;
@@ -80,6 +87,7 @@ export interface GameState {
   round: number;
   totalRounds: number;
   category: CategorySelection;
+  modelProvider: ModelProvider;
   usedThemeIds: Set<string>;
   currentRound: RoundState | null;
   scores: Map<string, PlayerScore>;

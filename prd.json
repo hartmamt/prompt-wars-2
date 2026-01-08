@@ -403,7 +403,7 @@
         "Provider abstraction interface for both"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Cost/quality/speed tradeoffs"
     },
     {

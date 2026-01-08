@@ -629,3 +629,34 @@
   - setInterval for periodic random glitch pops in ambience
   - hasPlayedSound ref prevents duplicate sound plays on re-renders
 ---
+
+## 2026-01-08 - US-026
+- What was implemented:
+  - ModelProvider type: 'flux-schnell' | 'nano-banana'
+  - MODEL_PROVIDERS/MODEL_PROVIDER_OPTIONS arrays with id, name, description
+  - modelProvider field added to GameState (server and client)
+  - modelProvider field added to RoomResponse and GameStateResponse
+  - Default value: 'flux-schnell' (cheaper, faster option)
+  - Server: updateRoomModelProvider() function in roomManager.ts
+  - Server: set-model-provider socket handler in socketHandlers.ts
+  - Server: modelProvider preserved on game reset (like category)
+  - Client: Model provider selector in Lobby.tsx (host only)
+  - Client: Grid of 2 buttons showing provider name and description
+  - Client: Selected provider shown to non-host players
+  - Client: AvatarSelector accepts aiAvatarsEnabled prop
+  - Client: AI Style button disabled when Flux Schnell selected
+  - Client: Tooltip explains "AI avatars require Nano Banana model"
+- Files changed:
+  - server/src/types.ts (ModelProvider type, MODEL_PROVIDERS constant)
+  - server/src/roomManager.ts (modelProvider in GameState, updateRoomModelProvider)
+  - server/src/socketHandlers.ts (set-model-provider handler, modelProvider in responses)
+  - client/src/types.ts (ModelProvider type, MODEL_PROVIDER_OPTIONS)
+  - client/src/components/Lobby.tsx (model provider selector UI)
+  - client/src/components/AvatarSelector.tsx (aiAvatarsEnabled prop)
+  - client/src/App.tsx (handleSetModelProvider callback)
+- **Learnings for future iterations:**
+  - Feature flags controlled by model selection allow feature/cost tradeoffs
+  - Grid buttons with descriptions work well for binary choices
+  - Pass feature flags down to child components that need them
+  - Preserve settings on game reset by copying from old gameState
+---

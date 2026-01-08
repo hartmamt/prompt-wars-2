@@ -8,6 +8,7 @@ import {
   updatePlayerReady,
   updatePlayerAvatar,
   updateRoomCategory,
+  updateRoomModelProvider,
   startGame,
   submitPrompt,
   getSubmittedPlayerIds,
@@ -30,7 +31,7 @@ import {
   resetGame,
 } from './roomManager.js';
 import { generateImage } from './flux.js';
-import type { Player, Room, CategorySelection, GamePhase } from './types.js';
+import type { Player, Room, CategorySelection, ModelProvider, GamePhase } from './types.js';
 
 interface RoomResponse {
   code: string;
@@ -38,6 +39,7 @@ interface RoomResponse {
   hostId: string | null;
   canStart: boolean;
   category: CategorySelection;
+  modelProvider: ModelProvider;
 }
 
 interface GameStateResponse {
@@ -45,6 +47,7 @@ interface GameStateResponse {
   round: number;
   totalRounds: number;
   category: CategorySelection;
+  modelProvider: ModelProvider;
   currentRound: {
     themeText: string;
     phaseEndTime: string;
@@ -59,6 +62,7 @@ function roomToResponse(room: Room): RoomResponse {
     hostId: room.hostId,
     canStart: canStartGame(room),
     category: room.gameState.category,
+    modelProvider: room.gameState.modelProvider,
   };
 }
 
@@ -68,6 +72,7 @@ function gameStateToResponse(room: Room): GameStateResponse {
     round: room.gameState.round,
     totalRounds: room.gameState.totalRounds,
     category: room.gameState.category,
+    modelProvider: room.gameState.modelProvider,
     currentRound: room.gameState.currentRound
       ? {
           themeText: room.gameState.currentRound.themeText,
@@ -148,6 +153,16 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     // Update category (host only)
     socket.on('set-category', (data: { category: CategorySelection }) => {
       const room = updateRoomCategory(socket.id, data.category);
+      if (room) {
+        io.to(room.code).emit('room-updated', {
+          room: roomToResponse(room),
+        });
+      }
+    });
+
+    // Update model provider (host only)
+    socket.on('set-model-provider', (data: { modelProvider: ModelProvider }) => {
+      const room = updateRoomModelProvider(socket.id, data.modelProvider);
       if (room) {
         io.to(room.code).emit('room-updated', {
           room: roomToResponse(room),

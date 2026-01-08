@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER } from './types.js';
 import { getRandomTheme } from './themes.js';
 
 const rooms = new Map<string, Room>();
@@ -39,6 +39,7 @@ export function createRoom(socketId: string, playerName: string): Room {
       round: 1,
       totalRounds: 3,
       category: 'All Categories',
+      modelProvider: 'flux-schnell',
       usedThemeIds: new Set(),
       currentRound: null,
       scores: new Map(),
@@ -208,6 +209,21 @@ export function updateRoomCategory(socketId: string, category: CategorySelection
   if (room.gameState.phase !== 'lobby') return null;
 
   room.gameState.category = category;
+  return room;
+}
+
+export function updateRoomModelProvider(socketId: string, modelProvider: ModelProvider): Room | null {
+  const room = getRoomBySocketId(socketId);
+  if (!room) return null;
+
+  // Only host can change model provider
+  const player = room.players.get(socketId);
+  if (!player?.isHost) return null;
+
+  // Can only change model provider in lobby phase
+  if (room.gameState.phase !== 'lobby') return null;
+
+  room.gameState.modelProvider = modelProvider;
   return room;
 }
 
@@ -923,6 +939,7 @@ export function resetGame(socketId: string): ResetGameResult {
     round: 1,
     totalRounds: 3,
     category: room.gameState.category, // Keep the selected category
+    modelProvider: room.gameState.modelProvider, // Keep the selected model provider
     usedThemeIds: new Set(),
     currentRound: null,
     scores: new Map(),

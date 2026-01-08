@@ -28,12 +28,20 @@ export const CATEGORY_OPTIONS: CategorySelection[] = [
   'Relatable Moments',
 ];
 
+export type ModelProvider = 'flux-schnell' | 'nano-banana';
+
+export const MODEL_PROVIDER_OPTIONS: { id: ModelProvider; name: string; description: string }[] = [
+  { id: 'flux-schnell', name: 'Flux Schnell', description: 'Fast & cheap (~$0.003/image)' },
+  { id: 'nano-banana', name: 'Nano Banana', description: 'Full features (AI avatars, @mentions)' },
+];
+
 export interface RoomState {
   code: string;
   players: Player[];
   hostId: string | null;
   canStart: boolean;
   category: CategorySelection;
+  modelProvider: ModelProvider;
 }
 
 export type GamePhase = 'home' | 'lobby' | 'prompting' | 'generating' | 'voting' | 'results' | 'final';
@@ -78,5 +86,6 @@ export interface GameState {
   round: number;
   totalRounds: number;
   category: CategorySelection;
+  modelProvider: ModelProvider;
   currentRound: CurrentRoundState | null;
 }
