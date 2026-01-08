@@ -404,3 +404,28 @@
   - US-009 implemented most of US-017's requirements
   - US-015 added the connection lost message
 ---
+
+## 2026-01-08 - US-018
+- What was implemented:
+  - Results.tsx: Two-column grid (md:grid-cols-2) for winner showcase + leaderboard side-by-side
+  - Results.tsx: Expanded containers (max-w-4xl, max-w-6xl) for desktop width
+  - Results.tsx: Responsive padding and text sizing (md:p-8, md:text-lg, etc.)
+  - Voting.tsx: Leaderboard expands to md:max-w-2xl with grid layout (md:grid-cols-2)
+  - FinalResults.tsx: Winner section wider (md:max-w-2xl), larger text on desktop
+  - FinalResults.tsx: Other players grid layout (md:grid-cols-2, md:max-w-4xl)
+  - Lobby.tsx: Player list grid (md:grid-cols-2), room code larger (md:text-7xl)
+  - Lobby.tsx: Wider containers and larger text for desktop
+  - All components use md: breakpoint (768px) for desktop responsiveness
+  - Verified: Voting.tsx already has side-by-side images (md:flex-row)
+  - All acceptance criteria met for 1920x1080 and 1366x768 desktop sizes
+- Files changed:
+  - client/src/components/Results.tsx (grid layout, wider containers, responsive sizing)
+  - client/src/components/Voting.tsx (wider leaderboard, grid layout)
+  - client/src/components/FinalResults.tsx (wider layouts, larger text, grid for others)
+  - client/src/components/Lobby.tsx (grid player list, wider containers, larger text)
+- **Learnings for future iterations:**
+  - Tailwind md: breakpoint is good for Discord Activity size (starts around 768px wide)
+  - Use grid with md:grid-cols-2 for side-by-side layouts on desktop
+  - max-w-md is too narrow for desktop, use max-w-lg, max-w-2xl, max-w-4xl, max-w-6xl
+  - Responsive padding (md:p-8 vs p-4) helps content breathe on larger screens
+---

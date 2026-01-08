@@ -261,23 +261,23 @@ export function Voting({
 
       {/* Mini leaderboard */}
       {leaderboard.length > 0 && (
-        <div className="mt-4 w-full max-w-md rounded-lg border border-gray-700 bg-gray-900/50 p-4">
-          <div className="mb-2 text-center text-xs font-bold uppercase tracking-widest text-prompt-pink">
+        <div className="mx-auto mt-4 w-full max-w-md rounded-lg border border-gray-700 bg-gray-900/50 p-4 md:max-w-2xl md:p-6">
+          <div className="mb-2 text-center text-xs font-bold uppercase tracking-widest text-prompt-pink md:mb-3 md:text-sm">
             LEADERBOARD
           </div>
-          <div className="space-y-1">
+          <div className="grid gap-1 md:grid-cols-2 md:gap-2">
             {leaderboard.slice(0, 5).map((entry) => (
               <div
                 key={entry.playerId}
-                className={`flex items-center justify-between rounded px-2 py-1 ${
+                className={`flex items-center justify-between rounded px-2 py-1 md:px-3 md:py-2 ${
                   entry.playerId === currentPlayerId ? 'bg-prompt-purple/20' : ''
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-6 text-center text-sm text-gray-500">#{entry.rank}</span>
-                  <span className="text-sm text-white">{entry.playerName}</span>
+                  <span className="w-6 text-center text-sm text-gray-500 md:text-base">#{entry.rank}</span>
+                  <span className="text-sm text-white md:text-base">{entry.playerName}</span>
                 </div>
-                <span className="font-mono text-sm font-bold text-prompt-green">
+                <span className="font-mono text-sm font-bold text-prompt-green md:text-base">
                   {entry.score.toLocaleString()}
                 </span>
               </div>

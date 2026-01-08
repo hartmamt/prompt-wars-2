@@ -282,7 +282,7 @@
         "Works at 1920x1080 and 1366x768"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Desktop-first for party game setting"
     },
     {
