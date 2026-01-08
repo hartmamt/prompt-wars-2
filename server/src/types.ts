@@ -34,6 +34,13 @@ export const MODEL_PROVIDERS: { id: ModelProvider; name: string; description: st
   { id: 'nano-banana', name: 'Nano Banana', description: 'Full features (AI avatars, @mentions)' },
 ];
 
+export interface MentionedPlayer {
+  playerId: string;
+  playerName: string;
+  playerAvatar: string | null;
+  personIndex: number; // [Person 1], [Person 2], etc.
+}
+
 export interface PlayerPrompt {
   playerId: string;
   prompt: string;
@@ -44,6 +51,8 @@ export interface PlayerPrompt {
   sabotageText: string | null; // Combined sabotage effects text (for display)
   sabotageAttackerId: string | null; // Primary sabotage attacker (for display)
   sabotageType: SabotageType | null; // Primary sabotage type (for display)
+  mentionedPlayers: MentionedPlayer[]; // Players @mentioned in the prompt
+  processedPrompt: string | null; // Prompt with @mentions replaced by [Person N]
   submittedAt: Date;
 }
 

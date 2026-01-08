@@ -99,6 +99,7 @@ interface RoundWinner {
   sabotageAttackerName: string | null;
   imageBase64: string | null;
   votesReceived: number;
+  mentionedPlayers?: { playerId: string; playerName: string; playerAvatar: string | null; personIndex: number }[];
 }
 
 interface RoundResultsEvent {

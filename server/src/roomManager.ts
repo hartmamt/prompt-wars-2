@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND, Sabotage, SabotageType, ChaosAward } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND, Sabotage, SabotageType, ChaosAward, MentionedPlayer } from './types.js';
 import { getRandomTheme } from './themes.js';
 import { getRandomModifier, applyModifier } from './modifiers.js';
 import { SABOTAGE_COSTS, MAX_SABOTAGES_PER_PLAYER_PER_GAME, createSabotageEffect, applySabotageToPrompt } from './sabotage.js';
@@ -365,6 +365,47 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
     modifierText = modifier.text;
   }
 
+  // Parse @mentions and replace with [Person N] (only for nano-banana provider)
+  const mentionedPlayers: MentionedPlayer[] = [];
+  let processedPrompt: string | null = null;
+
+  if (room.gameState.modelProvider === 'nano-banana') {
+    const mentionRegex = /@(\w+)/g;
+    let match;
+    let personIndex = 1;
+    let processedText = modifiedPrompt ?? trimmedPrompt;
+
+    while ((match = mentionRegex.exec(processedText)) !== null) {
+      const mentionName = match[1];
+      const player = Array.from(room.players.values()).find(
+        p => p.name.toLowerCase() === mentionName?.toLowerCase()
+      );
+
+      if (player && !mentionedPlayers.find(m => m.playerId === player.id)) {
+        mentionedPlayers.push({
+          playerId: player.id,
+          playerName: player.name,
+          playerAvatar: player.avatar,
+          personIndex,
+        });
+        personIndex++;
+      }
+    }
+
+    // Replace @mentions with [Person N]
+    if (mentionedPlayers.length > 0) {
+      processedText = modifiedPrompt ?? trimmedPrompt;
+      for (const mentioned of mentionedPlayers) {
+        const regex = new RegExp(`@${mentioned.playerName}\\b`, 'gi');
+        processedText = processedText.replace(regex, `[Person ${mentioned.personIndex}]`);
+      }
+
+      // Add instruction to maintain likenesses if mentions exist
+      processedText = `${processedText}. Make sure [Person] references maintain distinct appearances.`;
+      processedPrompt = processedText;
+    }
+  }
+
   // Check for sabotages against this player
   let sabotagedPrompt: string | null = null;
   let sabotageText: string | null = null;
@@ -415,6 +456,8 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
     sabotageText,
     sabotageAttackerId,
     sabotageType,
+    mentionedPlayers,
+    processedPrompt,
     submittedAt: new Date(),
   });
 
@@ -595,10 +638,12 @@ export function startGenerating(roomCode: string): StartGeneratingResult {
   // Transition to generating phase
   room.gameState.phase = 'generating';
 
-  // Extract prompts for generation (priority: sabotaged > modified > original)
+  // Extract prompts for generation (priority: sabotaged > processedPrompt > modified > original)
+  // processedPrompt has @mentions replaced with [Person N]
   const prompts = Array.from(room.gameState.currentRound.prompts.values()).map((p) => ({
     playerId: p.playerId,
-    prompt: p.sabotagedPrompt ?? p.modifiedPrompt ?? p.prompt,
+    prompt: p.sabotagedPrompt ?? p.processedPrompt ?? p.modifiedPrompt ?? p.prompt,
+    mentionedPlayers: p.mentionedPlayers,
   }));
 
   return { success: true, room, prompts };
@@ -1059,6 +1104,7 @@ export interface RoundWinnerData {
   sabotageAttackerName: string | null;
   imageBase64: string | null;
   totalVotesReceived: number;
+  mentionedPlayers: MentionedPlayer[];
 }
 
 export function getRoundWinner(room: Room): RoundWinnerData | null {
@@ -1106,6 +1152,7 @@ export function getRoundWinner(room: Room): RoundWinnerData | null {
     sabotageAttackerName,
     imageBase64: image?.imageBase64 ?? null,
     totalVotesReceived: maxVotes,
+    mentionedPlayers: prompt?.mentionedPlayers ?? [],
   };
 }
 

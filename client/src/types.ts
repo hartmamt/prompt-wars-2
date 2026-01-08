@@ -111,3 +111,11 @@ export interface ChaosAward {
   playerAvatar: string | null;
   emoji: string;
 }
+
+// @Mentions
+export interface MentionedPlayer {
+  playerId: string;
+  playerName: string;
+  playerAvatar: string | null;
+  personIndex: number;
+}

@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react';
 import type { LeaderboardEntry } from '../types';
 import { playClick, playHover, playNavigate, playRoundWin, playRoundLose } from '../sounds';
 
+interface MentionedPlayer {
+  playerId: string;
+  playerName: string;
+  playerAvatar: string | null;
+  personIndex: number;
+}
+
 interface RoundWinner {
   playerId: string;
   playerName: string;
@@ -12,6 +19,7 @@ interface RoundWinner {
   sabotageAttackerName: string | null;
   imageBase64: string | null;
   votesReceived: number;
+  mentionedPlayers?: MentionedPlayer[];
 }
 
 interface ResultsProps {
@@ -105,7 +113,7 @@ export function Results({
 
               {/* Winner image */}
               {roundWinner.imageBase64 && (
-                <div className={`sabotage-reveal mb-4 overflow-hidden rounded-lg ${
+                <div className={`sabotage-reveal mb-4 overflow-hidden rounded-lg relative ${
                   roundWinner.sabotageText ? 'photobomb-highlight' : ''
                 }`}>
                   <img
@@ -113,6 +121,29 @@ export function Results({
                     alt="Winning creation"
                     className="w-full"
                   />
+                  {/* Featuring overlay */}
+                  {roundWinner.mentionedPlayers && roundWinner.mentionedPlayers.length > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-prompt-pink">Featuring:</span>
+                        {roundWinner.mentionedPlayers.map((player) => (
+                          <span
+                            key={player.playerId}
+                            className="inline-flex items-center gap-1 rounded-full bg-prompt-pink/30 px-2 py-1 text-xs font-semibold text-white backdrop-blur-sm"
+                          >
+                            {player.playerAvatar ? (
+                              <img src={player.playerAvatar} alt="" className="h-4 w-4 rounded-full object-cover" />
+                            ) : (
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-prompt-pink/50 text-[10px]">
+                                {player.playerName.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                            @{player.playerName}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

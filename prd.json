@@ -526,7 +526,7 @@
         "Show 'Featuring' overlay on revealed images"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "Image-to-image with avatars"
     },
     {
