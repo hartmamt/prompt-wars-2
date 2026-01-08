@@ -9,6 +9,7 @@ import {
   updatePlayerAvatar,
   updateRoomCategory,
   updateRoomModelProvider,
+  updateRoomChaosMode,
   startGame,
   submitPrompt,
   getSubmittedPlayerIds,
@@ -40,6 +41,7 @@ interface RoomResponse {
   canStart: boolean;
   category: CategorySelection;
   modelProvider: ModelProvider;
+  chaosMode: boolean;
 }
 
 interface GameStateResponse {
@@ -48,6 +50,7 @@ interface GameStateResponse {
   totalRounds: number;
   category: CategorySelection;
   modelProvider: ModelProvider;
+  chaosMode: boolean;
   currentRound: {
     themeText: string;
     phaseEndTime: string;
@@ -63,6 +66,7 @@ function roomToResponse(room: Room): RoomResponse {
     canStart: canStartGame(room),
     category: room.gameState.category,
     modelProvider: room.gameState.modelProvider,
+    chaosMode: room.gameState.chaosMode,
   };
 }
 
@@ -73,6 +77,7 @@ function gameStateToResponse(room: Room): GameStateResponse {
     totalRounds: room.gameState.totalRounds,
     category: room.gameState.category,
     modelProvider: room.gameState.modelProvider,
+    chaosMode: room.gameState.chaosMode,
     currentRound: room.gameState.currentRound
       ? {
           themeText: room.gameState.currentRound.themeText,
@@ -163,6 +168,16 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     // Update model provider (host only)
     socket.on('set-model-provider', (data: { modelProvider: ModelProvider }) => {
       const room = updateRoomModelProvider(socket.id, data.modelProvider);
+      if (room) {
+        io.to(room.code).emit('room-updated', {
+          room: roomToResponse(room),
+        });
+      }
+    });
+
+    // Update chaos mode (host only)
+    socket.on('set-chaos-mode', (data: { chaosMode: boolean }) => {
+      const room = updateRoomChaosMode(socket.id, data.chaosMode);
       if (room) {
         io.to(room.code).emit('room-updated', {
           room: roomToResponse(room),
@@ -266,6 +281,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
               playerId: roundWinner.playerId,
               playerName: roundWinner.playerName,
               prompt: roundWinner.prompt,
+              modifierText: roundWinner.modifierText,
               imageBase64: roundWinner.imageBase64,
               votesReceived: roundWinner.totalVotesReceived,
             } : null,
@@ -338,6 +354,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
             playerId: roundWinner.playerId,
             playerName: roundWinner.playerName,
             prompt: roundWinner.prompt,
+            modifierText: roundWinner.modifierText,
             imageBase64: roundWinner.imageBase64,
             votesReceived: roundWinner.totalVotesReceived,
           } : null,

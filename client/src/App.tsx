@@ -94,6 +94,7 @@ interface RoundWinner {
   playerName: string;
   playerAvatar: string | null;
   prompt: string;
+  modifierText: string | null;
   imageBase64: string | null;
   votesReceived: number;
 }
@@ -430,6 +431,10 @@ function App() {
     socket.emit('set-model-provider', { modelProvider });
   }, []);
 
+  const handleSetChaosMode = useCallback((chaosMode: boolean) => {
+    socket.emit('set-chaos-mode', { chaosMode });
+  }, []);
+
   const handleAvatarChange = useCallback((avatar: string | null) => {
     if (avatar) {
       socket.emit('update-avatar', { avatar });
@@ -633,6 +638,7 @@ function App() {
           onToggleReady={handleToggleReady}
           onSetCategory={handleSetCategory}
           onSetModelProvider={handleSetModelProvider}
+          onSetChaosMode={handleSetChaosMode}
           onAvatarChange={handleAvatarChange}
         />
         <MuteButton />

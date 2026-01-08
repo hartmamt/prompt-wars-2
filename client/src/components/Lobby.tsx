@@ -13,6 +13,7 @@ interface LobbyProps {
   onToggleReady: () => void;
   onSetCategory: (category: CategorySelection) => void;
   onSetModelProvider: (modelProvider: ModelProvider) => void;
+  onSetChaosMode: (chaosMode: boolean) => void;
   onAvatarChange: (avatar: string | null) => void;
 }
 
@@ -65,6 +66,7 @@ export function Lobby({
   onToggleReady,
   onSetCategory,
   onSetModelProvider,
+  onSetChaosMode,
   onAvatarChange,
 }: LobbyProps) {
   const currentPlayer = room.players.find((p) => p.id === currentPlayerId);
@@ -155,6 +157,38 @@ export function Lobby({
               ))}
             </div>
           </div>
+
+          {/* Chaos Mode Toggle */}
+          <div>
+            <h2 className="mb-3 text-center text-sm font-bold uppercase tracking-wider text-gray-400 md:text-base">
+              ◆ CHAOS MODE ◆
+            </h2>
+            <button
+              onClick={() => { void playClick(); onSetChaosMode(!room.chaosMode); }}
+              onMouseEnter={() => void playHover()}
+              className={`w-full rounded-lg border-2 p-4 text-center transition-all md:p-5 ${
+                room.chaosMode
+                  ? 'border-prompt-pink bg-prompt-pink/20 shadow-lg shadow-prompt-pink/20'
+                  : 'border-gray-700 bg-gray-900 hover:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className={`text-2xl ${room.chaosMode ? 'animate-pulse' : ''}`}>
+                  {room.chaosMode ? '🌀' : '☆'}
+                </span>
+                <div className="text-left">
+                  <div className={`font-bold ${room.chaosMode ? 'text-prompt-pink' : 'text-white'}`}>
+                    {room.chaosMode ? 'COSMIC CHAOS ACTIVATED' : 'Activate Cosmic Chaos'}
+                  </div>
+                  <div className="text-xs text-gray-400 md:text-sm">
+                    {room.chaosMode
+                      ? 'Random modifiers will twist your prompts!'
+                      : 'Add random modifiers to every prompt'}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       )}
 
@@ -171,6 +205,11 @@ export function Lobby({
               {MODEL_PROVIDER_OPTIONS.find(p => p.id === room.modelProvider)?.name ?? 'Unknown'}
             </span>
           </div>
+          {room.chaosMode && (
+            <div className="rounded-lg border border-prompt-pink bg-prompt-pink/10 px-4 py-2 text-center md:px-6 md:py-3">
+              <span className="text-sm font-semibold text-prompt-pink md:text-base">🌀 Chaos Mode</span>
+            </div>
+          )}
         </div>
       )}
 

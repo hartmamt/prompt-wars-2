@@ -1,5 +1,6 @@
 import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER } from './types.js';
 import { getRandomTheme } from './themes.js';
+import { getRandomModifier, applyModifier } from './modifiers.js';
 
 const rooms = new Map<string, Room>();
 const playerToRoom = new Map<string, string>();
@@ -40,7 +41,9 @@ export function createRoom(socketId: string, playerName: string): Room {
       totalRounds: 3,
       category: 'All Categories',
       modelProvider: 'flux-schnell',
+      chaosMode: false,
       usedThemeIds: new Set(),
+      usedModifierIds: new Set(),
       currentRound: null,
       scores: new Map(),
     },
@@ -227,6 +230,21 @@ export function updateRoomModelProvider(socketId: string, modelProvider: ModelPr
   return room;
 }
 
+export function updateRoomChaosMode(socketId: string, chaosMode: boolean): Room | null {
+  const room = getRoomBySocketId(socketId);
+  if (!room) return null;
+
+  // Only host can toggle chaos mode
+  const player = room.players.get(socketId);
+  if (!player?.isHost) return null;
+
+  // Can only change chaos mode in lobby phase
+  if (room.gameState.phase !== 'lobby') return null;
+
+  room.gameState.chaosMode = chaosMode;
+  return room;
+}
+
 export interface StartGameResult {
   success: boolean;
   error?: string;
@@ -330,10 +348,26 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
     return { success: false, error: 'Already submitted' };
   }
 
+  // Apply modifier if chaos mode is enabled
+  let modifiedPrompt: string | null = null;
+  let modifierId: string | null = null;
+  let modifierText: string | null = null;
+
+  if (room.gameState.chaosMode) {
+    const modifier = getRandomModifier(room.gameState.round, room.gameState.usedModifierIds);
+    room.gameState.usedModifierIds.add(modifier.id);
+    modifiedPrompt = applyModifier(trimmedPrompt, modifier);
+    modifierId = modifier.id;
+    modifierText = modifier.text;
+  }
+
   // Store the prompt
   room.gameState.currentRound.prompts.set(socketId, {
     playerId: socketId,
     prompt: trimmedPrompt,
+    modifiedPrompt,
+    modifierId,
+    modifierText,
     submittedAt: new Date(),
   });
 
@@ -372,10 +406,10 @@ export function startGenerating(roomCode: string): StartGeneratingResult {
   // Transition to generating phase
   room.gameState.phase = 'generating';
 
-  // Extract prompts for generation
+  // Extract prompts for generation (use modifiedPrompt if chaos mode was enabled)
   const prompts = Array.from(room.gameState.currentRound.prompts.values()).map((p) => ({
     playerId: p.playerId,
-    prompt: p.prompt,
+    prompt: p.modifiedPrompt ?? p.prompt, // Use modified prompt if available
   }));
 
   return { success: true, room, prompts };
@@ -801,6 +835,7 @@ export interface RoundWinnerData {
   playerName: string;
   playerAvatar: string | null;
   prompt: string;
+  modifierText: string | null;
   imageBase64: string | null;
   totalVotesReceived: number;
 }
@@ -839,6 +874,7 @@ export function getRoundWinner(room: Room): RoundWinnerData | null {
     playerName: getPlayerName(room, winnerId),
     playerAvatar: getPlayerAvatar(room, winnerId),
     prompt: prompt?.prompt ?? '',
+    modifierText: prompt?.modifierText ?? null,
     imageBase64: image?.imageBase64 ?? null,
     totalVotesReceived: maxVotes,
   };
@@ -940,7 +976,9 @@ export function resetGame(socketId: string): ResetGameResult {
     totalRounds: 3,
     category: room.gameState.category, // Keep the selected category
     modelProvider: room.gameState.modelProvider, // Keep the selected model provider
+    chaosMode: room.gameState.chaosMode, // Keep chaos mode setting
     usedThemeIds: new Set(),
+    usedModifierIds: new Set(),
     currentRound: null,
     scores: new Map(),
   };

@@ -7,6 +7,7 @@ interface RoundWinner {
   playerName: string;
   playerAvatar: string | null;
   prompt: string;
+  modifierText: string | null;
   imageBase64: string | null;
   votesReceived: number;
 }
@@ -117,6 +118,16 @@ export function Results({
                   THE INCANTATION
                 </div>
                 <p className="font-mono text-sm text-white md:text-base">"{roundWinner.prompt}"</p>
+                {roundWinner.modifierText && (
+                  <div className="mt-3 border-t border-gray-700 pt-3">
+                    <div className="mb-1 text-xs font-bold uppercase tracking-widest text-prompt-pink">
+                      CHAOS MODIFIER
+                    </div>
+                    <p className="font-mono text-sm text-prompt-pink/80 md:text-base">
+                      + {roundWinner.modifierText}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

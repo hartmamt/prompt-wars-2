@@ -42,6 +42,7 @@ export interface RoomState {
   canStart: boolean;
   category: CategorySelection;
   modelProvider: ModelProvider;
+  chaosMode: boolean;
 }
 
 export type GamePhase = 'home' | 'lobby' | 'prompting' | 'generating' | 'voting' | 'results' | 'final';
@@ -87,5 +88,6 @@ export interface GameState {
   totalRounds: number;
   category: CategorySelection;
   modelProvider: ModelProvider;
+  chaosMode: boolean;
   currentRound: CurrentRoundState | null;
 }

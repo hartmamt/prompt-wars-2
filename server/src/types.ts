@@ -37,6 +37,9 @@ export const MODEL_PROVIDERS: { id: ModelProvider; name: string; description: st
 export interface PlayerPrompt {
   playerId: string;
   prompt: string;
+  modifiedPrompt: string | null; // Prompt with modifier applied (null if chaos mode off)
+  modifierId: string | null; // ID of modifier applied (null if chaos mode off)
+  modifierText: string | null; // Text of modifier applied (null if chaos mode off)
   submittedAt: Date;
 }
 
@@ -88,7 +91,9 @@ export interface GameState {
   totalRounds: number;
   category: CategorySelection;
   modelProvider: ModelProvider;
+  chaosMode: boolean;
   usedThemeIds: Set<string>;
+  usedModifierIds: Set<string>;
   currentRound: RoundState | null;
   scores: Map<string, PlayerScore>;
 }
