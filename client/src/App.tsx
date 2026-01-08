@@ -4,6 +4,7 @@ import { setupDiscord, isInDiscord, type DiscordUser } from './discord';
 import { Home } from './components/Home';
 import { Lobby } from './components/Lobby';
 import { Prompting } from './components/Prompting';
+import { Generating } from './components/Generating';
 import type { RoomState, GamePhase, Player, CategorySelection, GameState } from './types';
 
 interface RoomResponse {
@@ -38,6 +39,22 @@ interface PromptSubmittedEvent {
   allSubmitted: boolean;
 }
 
+interface GeneratingStartedEvent {
+  gameState: GameState;
+  totalImages: number;
+}
+
+interface ImageGeneratedEvent {
+  playerId: string;
+  generatedCount: number;
+  totalCount: number;
+  hasError: boolean;
+}
+
+interface GeneratingCompleteEvent {
+  gameState: GameState;
+}
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
@@ -47,6 +64,9 @@ function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasSubmittedPrompt, setHasSubmittedPrompt] = useState(false);
+  const [generatedCount, setGeneratedCount] = useState(0);
+  const [totalImagesToGenerate, setTotalImagesToGenerate] = useState(0);
+  const [hasGenerationError, setHasGenerationError] = useState(false);
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -118,6 +138,26 @@ function App() {
       }
     };
 
+    const onGeneratingStarted = (data: GeneratingStartedEvent) => {
+      setGameState(data.gameState);
+      setPhase('generating');
+      setTotalImagesToGenerate(data.totalImages);
+      setGeneratedCount(0);
+      setHasGenerationError(false);
+    };
+
+    const onImageGenerated = (data: ImageGeneratedEvent) => {
+      setGeneratedCount(data.generatedCount);
+      if (data.hasError) {
+        setHasGenerationError(true);
+      }
+    };
+
+    const onGeneratingComplete = (data: GeneratingCompleteEvent) => {
+      setGameState(data.gameState);
+      // Phase will transition to voting in US-010
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('player-joined', onPlayerJoined);
@@ -125,6 +165,9 @@ function App() {
     socket.on('room-updated', onRoomUpdated);
     socket.on('game-started', onGameStarted);
     socket.on('prompt-submitted', onPromptSubmitted);
+    socket.on('generating-started', onGeneratingStarted);
+    socket.on('image-generated', onImageGenerated);
+    socket.on('generating-complete', onGeneratingComplete);
 
     // Check if already connected
     if (socket.connected) {
@@ -139,6 +182,9 @@ function App() {
       socket.off('room-updated', onRoomUpdated);
       socket.off('game-started', onGameStarted);
       socket.off('prompt-submitted', onPromptSubmitted);
+      socket.off('generating-started', onGeneratingStarted);
+      socket.off('image-generated', onImageGenerated);
+      socket.off('generating-complete', onGeneratingComplete);
     };
   }, [currentPlayerId]);
 
@@ -226,6 +272,17 @@ function App() {
         submittedPlayerIds={gameState.currentRound.submittedPlayerIds}
         totalPlayers={room.players.length}
         onSubmitPrompt={handleSubmitPrompt}
+      />
+    );
+  }
+
+  // Generating phase
+  if (phase === 'generating') {
+    return (
+      <Generating
+        generatedCount={generatedCount}
+        totalCount={totalImagesToGenerate}
+        hasError={hasGenerationError}
       />
     );
   }

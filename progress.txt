@@ -183,3 +183,28 @@
   - Response includes content_type for proper base64 data URL prefix
   - Flux Schnell uses 4 inference steps for fast generation
 ---
+
+## 2026-01-07 - US-009
+- What was implemented:
+  - Generating.tsx component with animated "GENERATING" title
+  - 20 rotating humorous loading messages (2.5s interval)
+  - Fake progress bar that tracks actual progress + animation
+  - "AI Confidence" meter that fluctuates randomly
+  - Error state display for failed generations
+  - CRT scanline overlay effect for visual style
+  - Server: startGenerating(), storeGeneratedImage(), getGeneratedCount()
+  - Server: handleGeneratingPhase() generates all images in parallel
+  - Socket events: generating-started, image-generated, generating-complete
+  - GeneratedImage type added to RoundState
+- Files changed:
+  - server/src/types.ts (GeneratedImage, updated RoundState)
+  - server/src/roomManager.ts (startGenerating, storeGeneratedImage, getGeneratedCount)
+  - server/src/socketHandlers.ts (handleGeneratingPhase, new socket events)
+  - client/src/components/Generating.tsx (new component)
+  - client/src/App.tsx (generating phase state and events)
+- **Learnings for future iterations:**
+  - Use Promise.all for parallel image generation
+  - Track progress with generatedCount / totalCount
+  - Phase transitions triggered by events, not state comparison
+  - Fake progress bar can go backwards occasionally for humor
+---

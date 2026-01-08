@@ -33,10 +33,18 @@ export interface PlayerPrompt {
   submittedAt: Date;
 }
 
+export interface GeneratedImage {
+  playerId: string;
+  imageBase64: string | null;
+  error: string | null;
+  generatedAt: Date;
+}
+
 export interface RoundState {
   themeId: string;
   themeText: string;
   prompts: Map<string, PlayerPrompt>;
+  generatedImages: Map<string, GeneratedImage>;
   phaseStartTime: Date;
   phaseEndTime: Date;
 }

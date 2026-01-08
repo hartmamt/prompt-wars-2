@@ -10,7 +10,12 @@ import {
   startGame,
   submitPrompt,
   getSubmittedPlayerIds,
+  startGenerating,
+  storeGeneratedImage,
+  getGeneratedCount,
+  getRoom,
 } from './roomManager.js';
+import { generateImage } from './flux.js';
 import type { Player, Room, CategorySelection, GamePhase } from './types.js';
 
 interface RoomResponse {
@@ -161,8 +166,10 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
       callback({ success: true });
 
-      // If all players have submitted, we could trigger phase transition here
-      // For now, we'll let the timer handle it or a separate mechanism
+      // If all players have submitted, trigger generating phase
+      if (result.allSubmitted) {
+        void handleGeneratingPhase(io, result.room.code);
+      }
     });
 
     // Disconnect handling
@@ -187,6 +194,60 @@ function handleLeaveRoom(io: SocketIOServer, socket: Socket): void {
       wasHost,
       newHostId,
       room: roomToResponse(room),
+    });
+  }
+}
+
+async function handleGeneratingPhase(io: SocketIOServer, roomCode: string): Promise<void> {
+  const result = startGenerating(roomCode);
+
+  if (!result.success || !result.room || !result.prompts) {
+    console.error('Failed to start generating:', result.error);
+    return;
+  }
+
+  const room = result.room;
+
+  // Notify all players that generating has started
+  io.to(roomCode).emit('generating-started', {
+    gameState: gameStateToResponse(room),
+    totalImages: result.prompts.length,
+  });
+
+  // Generate images for all prompts in parallel
+  const generationPromises = result.prompts.map(async ({ playerId, prompt }) => {
+    const imageResult = await generateImage(prompt);
+
+    const storeResult = storeGeneratedImage(
+      roomCode,
+      playerId,
+      imageResult.success ? (imageResult.imageBase64 ?? null) : null,
+      imageResult.success ? null : (imageResult.error ?? 'Unknown error')
+    );
+
+    // Get updated room state for counts
+    const updatedRoom = getRoom(roomCode);
+    if (updatedRoom) {
+      const counts = getGeneratedCount(updatedRoom);
+      io.to(roomCode).emit('image-generated', {
+        playerId,
+        generatedCount: counts.generated,
+        totalCount: counts.total,
+        hasError: !imageResult.success,
+      });
+    }
+
+    return storeResult;
+  });
+
+  // Wait for all generations to complete
+  await Promise.all(generationPromises);
+
+  // Get final room state
+  const finalRoom = getRoom(roomCode);
+  if (finalRoom) {
+    io.to(roomCode).emit('generating-complete', {
+      gameState: gameStateToResponse(finalRoom),
     });
   }
 }

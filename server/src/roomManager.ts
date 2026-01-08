@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage } from './types.js';
 import { getRandomTheme } from './themes.js';
 
 const rooms = new Map<string, Room>();
@@ -229,6 +229,7 @@ export function startGame(socketId: string): StartGameResult {
     themeId: theme.id,
     themeText: theme.text,
     prompts: new Map(),
+    generatedImages: new Map(),
     phaseStartTime: now,
     phaseEndTime: endTime,
   };
@@ -287,4 +288,83 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
 export function getSubmittedPlayerIds(room: Room): string[] {
   if (!room.gameState.currentRound) return [];
   return Array.from(room.gameState.currentRound.prompts.keys());
+}
+
+export interface StartGeneratingResult {
+  success: boolean;
+  error?: string;
+  room?: Room;
+  prompts?: Array<{ playerId: string; prompt: string }>;
+}
+
+export function startGenerating(roomCode: string): StartGeneratingResult {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  if (room.gameState.phase !== 'prompting') {
+    return { success: false, error: 'Not in prompting phase' };
+  }
+
+  if (!room.gameState.currentRound) {
+    return { success: false, error: 'No active round' };
+  }
+
+  // Transition to generating phase
+  room.gameState.phase = 'generating';
+
+  // Extract prompts for generation
+  const prompts = Array.from(room.gameState.currentRound.prompts.values()).map((p) => ({
+    playerId: p.playerId,
+    prompt: p.prompt,
+  }));
+
+  return { success: true, room, prompts };
+}
+
+export interface StoreImageResult {
+  success: boolean;
+  error?: string;
+  allGenerated?: boolean;
+}
+
+export function storeGeneratedImage(
+  roomCode: string,
+  playerId: string,
+  imageBase64: string | null,
+  error: string | null
+): StoreImageResult {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  if (!room.gameState.currentRound) {
+    return { success: false, error: 'No active round' };
+  }
+
+  const generatedImage: GeneratedImage = {
+    playerId,
+    imageBase64,
+    error,
+    generatedAt: new Date(),
+  };
+
+  room.gameState.currentRound.generatedImages.set(playerId, generatedImage);
+
+  // Check if all images are generated
+  const allGenerated = room.gameState.currentRound.generatedImages.size >= room.gameState.currentRound.prompts.size;
+
+  return { success: true, allGenerated };
+}
+
+export function getGeneratedCount(room: Room): { generated: number; total: number } {
+  if (!room.gameState.currentRound) {
+    return { generated: 0, total: 0 };
+  }
+  return {
+    generated: room.gameState.currentRound.generatedImages.size,
+    total: room.gameState.currentRound.prompts.size,
+  };
 }
