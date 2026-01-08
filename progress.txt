@@ -262,3 +262,29 @@
   - Score changes array includes reason for display
   - Leaderboard passed to multiple events for consistency
 ---
+
+## 2026-01-07 - US-012
+- What was implemented:
+  - Results.tsx component with round winner showcase
+  - Winner display includes: image, prompt ("THE INCANTATION"), votes received
+  - Theme reveal section displays the round's theme
+  - Leaderboard with rank badges, scores, and round wins
+  - Current player highlighted in leaderboard
+  - Host sees "BEGIN ROUND X" or "VIEW FINAL RESULTS" button
+  - Non-hosts see "Waiting for host to continue..."
+  - Server: getRoundWinner() finds player with most total votes
+  - Server: transitionToResults() moves game to results phase
+  - Server: startNextRound() advances to next round or final phase
+  - Socket events: round-results (with winner, theme, leaderboard), next-round
+  - App.tsx: results phase state management and rendering
+- Files changed:
+  - client/src/components/Results.tsx (new component)
+  - client/src/App.tsx (results phase state, event handlers, rendering)
+  - server/src/roomManager.ts (getRoundWinner, transitionToResults, startNextRound)
+  - server/src/socketHandlers.ts (round-results, next-round events)
+- **Learnings for future iterations:**
+  - Round winner determined by total votes across all matchups in the round
+  - transitionToResults() just changes phase, doesn't clear round data
+  - startNextRound() resets round data and picks new theme using usedThemeIds
+  - Results component needs isHost prop to control who can continue
+---

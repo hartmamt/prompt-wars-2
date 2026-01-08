@@ -189,7 +189,7 @@
         "Transition to next round or final results"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Feedback loop between rounds"
     },
     {
