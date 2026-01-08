@@ -56,6 +56,20 @@ export interface MatchupData {
   totalMatchups: number;
 }
 
+export interface LeaderboardEntry {
+  playerId: string;
+  playerName: string;
+  score: number;
+  roundWins: number;
+  rank: number;
+}
+
+export interface ScoreChange {
+  playerId: string;
+  pointsAdded: number;
+  reason: string;
+}
+
 export interface GameState {
   phase: GamePhase;
   round: number;

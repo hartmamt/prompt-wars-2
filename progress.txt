@@ -236,3 +236,29 @@
   - Track votersWhoVoted array client-side to show progress
   - Reset hasVoted state when matchup changes
 ---
+
+## 2026-01-07 - US-011
+- What was implemented:
+  - Win head-to-head vote: +500 points (POINTS_WIN_MATCHUP)
+  - Fastest correct vote: +50 bonus (POINTS_FASTEST_VOTER)
+  - PlayerScore type: playerId, score, roundWins, votesReceived, fastestVoterBonuses
+  - Scores Map in GameState, initialized when game starts
+  - calculateMatchupScores() returns winner, loser, vote counts, score changes
+  - getLeaderboard() returns sorted entries with rank
+  - matchup-result event emits score changes and updated leaderboard
+  - Animated score change notifications (bounce animation)
+  - Mini leaderboard display during voting (top 5)
+  - Current player highlighted in leaderboard
+- Files changed:
+  - server/src/types.ts (PlayerScore, POINTS constants, updated GameState)
+  - server/src/roomManager.ts (calculateMatchupScores, getLeaderboard, score initialization)
+  - server/src/socketHandlers.ts (emit matchup-result, leaderboard in voting-complete)
+  - client/src/types.ts (LeaderboardEntry, ScoreChange)
+  - client/src/components/Voting.tsx (leaderboard display, score animations)
+  - client/src/App.tsx (leaderboard state, matchup-result event handling)
+- **Learnings for future iterations:**
+  - Fastest correct voter = first vote for the winner sorted by votedAt
+  - Use setTimeout to clear score animations after display
+  - Score changes array includes reason for display
+  - Leaderboard passed to multiple events for consistency
+---

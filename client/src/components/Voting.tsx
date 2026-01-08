@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { LeaderboardEntry, ScoreChange } from '../types';
 
 interface MatchupData {
   player1Id: string;
@@ -19,6 +20,8 @@ interface VotingProps {
   totalVoters: number;
   hasVoted: boolean;
   onCastVote: (votedForPlayerId: string) => void;
+  leaderboard: LeaderboardEntry[];
+  recentScoreChanges: ScoreChange[];
 }
 
 export function Voting({
@@ -28,6 +31,8 @@ export function Voting({
   totalVoters,
   hasVoted,
   onCastVote,
+  leaderboard,
+  recentScoreChanges,
 }: VotingProps) {
   const [timeLeft, setTimeLeft] = useState(60);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
@@ -234,6 +239,52 @@ export function Voting({
           ))}
         </div>
       </div>
+
+      {/* Score changes animation */}
+      {recentScoreChanges.length > 0 && (
+        <div className="fixed right-4 top-4 z-50 flex flex-col gap-2">
+          {recentScoreChanges.map((change, index) => {
+            const playerEntry = leaderboard.find((e) => e.playerId === change.playerId);
+            return (
+              <div
+                key={`${change.playerId}-${index}`}
+                className="animate-bounce rounded-lg bg-prompt-green px-4 py-2 text-black shadow-lg"
+              >
+                <div className="font-bold">+{change.pointsAdded}</div>
+                <div className="text-xs">{playerEntry?.playerName ?? 'Player'}</div>
+                <div className="text-xs opacity-75">{change.reason}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Mini leaderboard */}
+      {leaderboard.length > 0 && (
+        <div className="mt-4 w-full max-w-md rounded-lg border border-gray-700 bg-gray-900/50 p-4">
+          <div className="mb-2 text-center text-xs font-bold uppercase tracking-widest text-prompt-pink">
+            LEADERBOARD
+          </div>
+          <div className="space-y-1">
+            {leaderboard.slice(0, 5).map((entry) => (
+              <div
+                key={entry.playerId}
+                className={`flex items-center justify-between rounded px-2 py-1 ${
+                  entry.playerId === currentPlayerId ? 'bg-prompt-purple/20' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-6 text-center text-sm text-gray-500">#{entry.rank}</span>
+                  <span className="text-sm text-white">{entry.playerName}</span>
+                </div>
+                <span className="font-mono text-sm font-bold text-prompt-green">
+                  {entry.score.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

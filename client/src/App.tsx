@@ -6,7 +6,7 @@ import { Lobby } from './components/Lobby';
 import { Prompting } from './components/Prompting';
 import { Generating } from './components/Generating';
 import { Voting } from './components/Voting';
-import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData } from './types';
+import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
 
 interface RoomResponse {
   success: boolean;
@@ -72,6 +72,17 @@ interface NextMatchupEvent {
 
 interface VotingCompleteEvent {
   gameState: GameState | null;
+  leaderboard: LeaderboardEntry[];
+}
+
+interface MatchupResultEvent {
+  winnerId: string | null;
+  loserId: string | null;
+  player1Votes: number;
+  player2Votes: number;
+  fastestCorrectVoterId: string | null;
+  scoreChanges: ScoreChange[];
+  leaderboard: LeaderboardEntry[];
 }
 
 function App() {
@@ -89,6 +100,8 @@ function App() {
   const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
   const [votersWhoVoted, setVotersWhoVoted] = useState<string[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [recentScoreChanges, setRecentScoreChanges] = useState<ScoreChange[]>([]);
 
   // Get the current player's ID (socket ID)
   const currentPlayerId = socket.id ?? '';
@@ -201,10 +214,21 @@ function App() {
       setHasVoted(false);
     };
 
+    const onMatchupResult = (data: MatchupResultEvent) => {
+      setLeaderboard(data.leaderboard);
+      setRecentScoreChanges(data.scoreChanges);
+
+      // Clear recent score changes after animation time
+      setTimeout(() => {
+        setRecentScoreChanges([]);
+      }, 3000);
+    };
+
     const onVotingComplete = (data: VotingCompleteEvent) => {
       if (data.gameState) {
         setGameState(data.gameState);
       }
+      setLeaderboard(data.leaderboard);
       // Phase will transition to results in US-012
       setPhase('results');
     };
@@ -222,6 +246,7 @@ function App() {
     socket.on('voting-started', onVotingStarted);
     socket.on('vote-cast', onVoteCast);
     socket.on('next-matchup', onNextMatchup);
+    socket.on('matchup-result', onMatchupResult);
     socket.on('voting-complete', onVotingComplete);
 
     // Check if already connected
@@ -243,6 +268,7 @@ function App() {
       socket.off('voting-started', onVotingStarted);
       socket.off('vote-cast', onVoteCast);
       socket.off('next-matchup', onNextMatchup);
+      socket.off('matchup-result', onMatchupResult);
       socket.off('voting-complete', onVotingComplete);
     };
   }, [currentPlayerId]);
@@ -369,6 +395,8 @@ function App() {
         totalVoters={eligibleVoters.length}
         hasVoted={hasVoted}
         onCastVote={handleCastVote}
+        leaderboard={leaderboard}
+        recentScoreChanges={recentScoreChanges}
       />
     );
   }

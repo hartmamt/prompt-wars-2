@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER } from './types.js';
 import { getRandomTheme } from './themes.js';
 
 const rooms = new Map<string, Room>();
@@ -41,6 +41,7 @@ export function createRoom(socketId: string, playerName: string): Room {
       category: 'All Categories',
       usedThemeIds: new Set(),
       currentRound: null,
+      scores: new Map(),
     },
   };
 
@@ -238,6 +239,19 @@ export function startGame(socketId: string): StartGameResult {
 
   room.gameState.phase = 'prompting';
   room.gameState.currentRound = roundState;
+
+  // Initialize scores for all players if not already done
+  for (const playerId of room.players.keys()) {
+    if (!room.gameState.scores.has(playerId)) {
+      room.gameState.scores.set(playerId, {
+        playerId,
+        score: 0,
+        roundWins: 0,
+        votesReceived: 0,
+        fastestVoterBonuses: 0,
+      });
+    }
+  }
 
   return { success: true, room };
 }
@@ -624,4 +638,111 @@ export function getCurrentMatchupVotes(room: Room): { voterId: string }[] {
 export function getPlayerName(room: Room, playerId: string): string {
   const player = room.players.get(playerId);
   return player?.name ?? 'Unknown';
+}
+
+export interface MatchupResult {
+  winnerId: string | null;  // null if tie
+  loserId: string | null;
+  player1Votes: number;
+  player2Votes: number;
+  fastestCorrectVoterId: string | null;
+  scoreChanges: Array<{ playerId: string; pointsAdded: number; reason: string }>;
+}
+
+export function calculateMatchupScores(room: Room): MatchupResult | null {
+  if (!room.gameState.currentRound) return null;
+
+  const matchup = room.gameState.currentRound.matchups[room.gameState.currentRound.currentMatchupIndex];
+  if (!matchup) return null;
+
+  // Count votes for each player
+  const player1Votes = matchup.votes.filter((v) => v.votedForPlayerId === matchup.player1Id).length;
+  const player2Votes = matchup.votes.filter((v) => v.votedForPlayerId === matchup.player2Id).length;
+
+  const scoreChanges: Array<{ playerId: string; pointsAdded: number; reason: string }> = [];
+
+  let winnerId: string | null = null;
+  let loserId: string | null = null;
+
+  if (player1Votes > player2Votes) {
+    winnerId = matchup.player1Id;
+    loserId = matchup.player2Id;
+  } else if (player2Votes > player1Votes) {
+    winnerId = matchup.player2Id;
+    loserId = matchup.player1Id;
+  }
+  // If tied, no winner
+
+  // Award points to winner
+  if (winnerId) {
+    const winnerScore = room.gameState.scores.get(winnerId);
+    if (winnerScore) {
+      winnerScore.score += POINTS_WIN_MATCHUP;
+      winnerScore.roundWins += 1;
+      winnerScore.votesReceived += winnerId === matchup.player1Id ? player1Votes : player2Votes;
+      scoreChanges.push({ playerId: winnerId, pointsAdded: POINTS_WIN_MATCHUP, reason: 'Matchup Win' });
+    }
+  }
+
+  // Update votes received for loser too
+  if (loserId) {
+    const loserScore = room.gameState.scores.get(loserId);
+    if (loserScore) {
+      loserScore.votesReceived += loserId === matchup.player1Id ? player1Votes : player2Votes;
+    }
+  }
+
+  // Find fastest correct voter (voted for winner first)
+  let fastestCorrectVoterId: string | null = null;
+  if (winnerId && matchup.votes.length > 0) {
+    const correctVotes = matchup.votes
+      .filter((v) => v.votedForPlayerId === winnerId)
+      .sort((a, b) => a.votedAt.getTime() - b.votedAt.getTime());
+
+    if (correctVotes.length > 0 && correctVotes[0]) {
+      fastestCorrectVoterId = correctVotes[0].voterId;
+      const fastestScore = room.gameState.scores.get(fastestCorrectVoterId);
+      if (fastestScore) {
+        fastestScore.score += POINTS_FASTEST_VOTER;
+        fastestScore.fastestVoterBonuses += 1;
+        scoreChanges.push({ playerId: fastestCorrectVoterId, pointsAdded: POINTS_FASTEST_VOTER, reason: 'Fastest Correct Vote' });
+      }
+    }
+  }
+
+  return {
+    winnerId,
+    loserId,
+    player1Votes,
+    player2Votes,
+    fastestCorrectVoterId,
+    scoreChanges,
+  };
+}
+
+export interface LeaderboardEntry {
+  playerId: string;
+  playerName: string;
+  score: number;
+  roundWins: number;
+  rank: number;
+}
+
+export function getLeaderboard(room: Room): LeaderboardEntry[] {
+  const entries = Array.from(room.gameState.scores.values())
+    .map((score) => ({
+      playerId: score.playerId,
+      playerName: getPlayerName(room, score.playerId),
+      score: score.score,
+      roundWins: score.roundWins,
+      rank: 0,
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  // Assign ranks
+  entries.forEach((entry, index) => {
+    entry.rank = index + 1;
+  });
+
+  return entries;
 }

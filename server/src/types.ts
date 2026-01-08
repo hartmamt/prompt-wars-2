@@ -67,6 +67,14 @@ export interface RoundState {
   phaseEndTime: Date;
 }
 
+export interface PlayerScore {
+  playerId: string;
+  score: number;
+  roundWins: number;
+  votesReceived: number;
+  fastestVoterBonuses: number;
+}
+
 export interface GameState {
   phase: GamePhase;
   round: number;
@@ -74,7 +82,11 @@ export interface GameState {
   category: CategorySelection;
   usedThemeIds: Set<string>;
   currentRound: RoundState | null;
+  scores: Map<string, PlayerScore>;
 }
+
+export const POINTS_WIN_MATCHUP = 500;
+export const POINTS_FASTEST_VOTER = 50;
 
 export const PROMPTING_DURATION_MS = 90 * 1000; // 90 seconds
 export const PROMPT_MAX_LENGTH = 200;

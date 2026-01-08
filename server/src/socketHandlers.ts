@@ -20,6 +20,8 @@ import {
   getCurrentMatchupVotes,
   getPlayerName,
   getRoomBySocketId,
+  calculateMatchupScores,
+  getLeaderboard,
 } from './roomManager.js';
 import { generateImage } from './flux.js';
 import type { Player, Room, CategorySelection, GamePhase } from './types.js';
@@ -203,12 +205,29 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
       // If all eligible players have voted, advance to next matchup
       if (result.allVoted) {
+        // Calculate scores for this matchup before advancing
+        const matchupResult = calculateMatchupScores(room);
+
+        // Emit score update
+        if (matchupResult) {
+          io.to(room.code).emit('matchup-result', {
+            winnerId: matchupResult.winnerId,
+            loserId: matchupResult.loserId,
+            player1Votes: matchupResult.player1Votes,
+            player2Votes: matchupResult.player2Votes,
+            fastestCorrectVoterId: matchupResult.fastestCorrectVoterId,
+            scoreChanges: matchupResult.scoreChanges,
+            leaderboard: getLeaderboard(room),
+          });
+        }
+
         const advanceResult = advanceMatchup(room.code);
 
         if (advanceResult.isComplete) {
           // All matchups complete - transition to results phase (US-012)
           io.to(room.code).emit('voting-complete', {
             gameState: advanceResult.room ? gameStateToResponse(advanceResult.room) : null,
+            leaderboard: advanceResult.room ? getLeaderboard(advanceResult.room) : [],
           });
         } else if (advanceResult.nextMatchup) {
           // Emit next matchup
@@ -241,11 +260,28 @@ export function setupSocketHandlers(io: SocketIOServer): void {
         return;
       }
 
+      // Calculate scores for this matchup before advancing
+      const matchupResult = calculateMatchupScores(room);
+
+      // Emit score update
+      if (matchupResult) {
+        io.to(room.code).emit('matchup-result', {
+          winnerId: matchupResult.winnerId,
+          loserId: matchupResult.loserId,
+          player1Votes: matchupResult.player1Votes,
+          player2Votes: matchupResult.player2Votes,
+          fastestCorrectVoterId: matchupResult.fastestCorrectVoterId,
+          scoreChanges: matchupResult.scoreChanges,
+          leaderboard: getLeaderboard(room),
+        });
+      }
+
       const advanceResult = advanceMatchup(room.code);
 
       if (advanceResult.isComplete) {
         io.to(room.code).emit('voting-complete', {
           gameState: advanceResult.room ? gameStateToResponse(advanceResult.room) : null,
+          leaderboard: advanceResult.room ? getLeaderboard(advanceResult.room) : [],
         });
       } else if (advanceResult.nextMatchup) {
         const player1Name = getPlayerName(room, advanceResult.nextMatchup.player1Id);
