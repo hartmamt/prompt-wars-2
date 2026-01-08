@@ -559,7 +559,7 @@
         "Responsive on desktop and mobile"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "Marketing presence"
     },
     {

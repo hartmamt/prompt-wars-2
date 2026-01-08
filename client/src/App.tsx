@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { socket, connectSocket } from './socket';
 import { setupDiscord, isInDiscord, type DiscordUser } from './discord';
+import { LandingPage } from './components/LandingPage';
 import { Home } from './components/Home';
 import { Lobby } from './components/Lobby';
 import { Prompting } from './components/Prompting';
@@ -130,7 +131,8 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [phase, setPhase] = useState<GamePhase>('home');
+  // Start with landing page unless in Discord Activity
+  const [phase, setPhase] = useState<GamePhase>(isInDiscord() ? 'home' : 'landing');
   const [room, setRoom] = useState<RoomState | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -185,7 +187,7 @@ function App() {
       setConnected(false);
       setRoom(null);
       setGameState(null);
-      setPhase('home');
+      setPhase(isInDiscord() ? 'home' : 'landing');
       setHasSubmittedPrompt(false);
     };
 
@@ -545,11 +547,16 @@ function App() {
     socket.emit('leave-room', () => {
       setRoom(null);
       setGameState(null);
-      setPhase('home');
+      setPhase(isInDiscord() ? 'home' : 'landing');
       setHasSubmittedPrompt(false);
       setLeaderboard([]);
       setRoundWinner(null);
     });
+  }, []);
+
+  // Navigate from landing page to home (room creation)
+  const handlePlayNow = useCallback(() => {
+    setPhase('home');
   }, []);
 
   // Mute button component
@@ -696,6 +703,16 @@ function App() {
           onSetChaosMode={handleSetChaosMode}
           onAvatarChange={handleAvatarChange}
         />
+        <MuteButton />
+      </div>
+    );
+  }
+
+  // Landing page phase
+  if (phase === 'landing') {
+    return (
+      <div onClick={handleInitAudio}>
+        <LandingPage onPlayNow={handlePlayNow} />
         <MuteButton />
       </div>
     );

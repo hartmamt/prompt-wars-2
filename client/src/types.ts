@@ -45,7 +45,7 @@ export interface RoomState {
   chaosMode: boolean;
 }
 
-export type GamePhase = 'home' | 'lobby' | 'prompting' | 'generating' | 'voting' | 'results' | 'final';
+export type GamePhase = 'landing' | 'home' | 'lobby' | 'prompting' | 'generating' | 'voting' | 'results' | 'final';
 
 export interface CurrentRoundState {
   themeText: string;
