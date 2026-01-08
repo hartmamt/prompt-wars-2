@@ -105,7 +105,9 @@ export function Results({
 
               {/* Winner image */}
               {roundWinner.imageBase64 && (
-                <div className="mb-4 overflow-hidden rounded-lg">
+                <div className={`sabotage-reveal mb-4 overflow-hidden rounded-lg ${
+                  roundWinner.sabotageText ? 'photobomb-highlight' : ''
+                }`}>
                   <img
                     src={roundWinner.imageBase64}
                     alt="Winning creation"

@@ -20,6 +20,11 @@ const SABOTAGE_OPTIONS: SabotageOption[] = [
   { type: 'prompt_swap', name: 'Prompt Swap', description: 'Exchange prompts', cost: 4, emoji: '🔄' },
 ];
 
+interface SabotageTarget {
+  victimId: string;
+  attackerId: string;
+}
+
 interface PromptingProps {
   theme: string;
   phaseEndTime: string;
@@ -32,6 +37,8 @@ interface PromptingProps {
   currentPlayerTokens: number;
   onUseSabotage: (victimId: string, sabotageType: SabotageType) => void;
   incomingSabotage: { attackerName: string; sabotageType?: SabotageType } | null;
+  armedSabotages?: SabotageTarget[]; // Sabotages currently targeting other players
+  sabotagesAgainstMe?: number; // Number of sabotages against current player this round
 }
 
 const PROMPT_MAX_LENGTH = 200;
@@ -48,6 +55,8 @@ export function Prompting({
   currentPlayerTokens,
   onUseSabotage,
   incomingSabotage,
+  armedSabotages = [],
+  sabotagesAgainstMe = 0,
 }: PromptingProps) {
   const [prompt, setPrompt] = useState('');
   const [timeLeft, setTimeLeft] = useState(90);
@@ -56,6 +65,9 @@ export function Prompting({
   const [showSabotagePanel, setShowSabotagePanel] = useState(false);
   const [selectedVictimId, setSelectedVictimId] = useState<string | null>(null);
   const [selectedSabotageType, setSelectedSabotageType] = useState<SabotageType>('word_injection');
+  const [showFlash, setShowFlash] = useState(false);
+  const [tokenAnimation, setTokenAnimation] = useState<{ amount: number; type: 'earn' | 'spend' } | null>(null);
+  const prevTokensRef = useRef(currentPlayerTokens);
 
   // Play theme reveal sound on mount
   useEffect(() => {
@@ -64,6 +76,31 @@ export function Prompting({
       playThemeReveal();
     }
   }, []);
+
+  // Trigger flash animation on incoming sabotage
+  useEffect(() => {
+    if (incomingSabotage) {
+      setShowFlash(true);
+      const timer = setTimeout(() => setShowFlash(false), 1000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [incomingSabotage]);
+
+  // Token change animation
+  useEffect(() => {
+    const diff = currentPlayerTokens - prevTokensRef.current;
+    if (diff !== 0) {
+      setTokenAnimation({
+        amount: Math.abs(diff),
+        type: diff > 0 ? 'earn' : 'spend',
+      });
+      const timer = setTimeout(() => setTokenAnimation(null), 1000);
+      prevTokensRef.current = currentPlayerTokens;
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [currentPlayerTokens]);
 
   // Calculate and update time left
   useEffect(() => {
@@ -128,11 +165,41 @@ export function Prompting({
     return SABOTAGE_OPTIONS.find(o => o.type === type)?.name ?? 'Sabotage';
   };
 
+  // Check if we have an armed sabotage against a player
+  const hasArmedSabotage = (playerId: string): boolean => {
+    return armedSabotages.some(s => s.victimId === playerId);
+  };
+
+  // Check if player is protected (sabotaged max times - though this is per-attacker, simplify to show badge after any sabotage)
+  const isProtected = sabotagesAgainstMe >= 2;
+
   return (
-    <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4">
+    <div className={`flex min-h-screen flex-col items-center bg-prompt-black p-4 ${showFlash ? 'sabotage-flash' : ''}`}>
+      {/* Screen Flash Overlay */}
+      {showFlash && (
+        <div className="pointer-events-none fixed inset-0 z-40 bg-red-500/20" />
+      )}
+
+      {/* Token Animation */}
+      {tokenAnimation && (
+        <div className={`token-float fixed right-8 top-8 z-50 text-2xl ${
+          tokenAnimation.type === 'earn' ? 'token-float-earn' : 'token-float-spend'
+        }`}>
+          {tokenAnimation.type === 'earn' ? '+' : '-'}{tokenAnimation.amount} 🪙
+        </div>
+      )}
+
+      {/* Protected Badge Notification */}
+      {isProtected && (
+        <div className="fixed right-4 top-4 z-30 rounded-lg border border-green-500 bg-green-900/90 px-3 py-2 text-sm">
+          <span className="mr-1">🛡️</span>
+          <span className="text-green-400">Protected</span>
+        </div>
+      )}
+
       {/* Incoming Sabotage Warning */}
       {incomingSabotage && (
-        <div className="fixed left-0 right-0 top-0 z-50 animate-pulse border-b-4 border-red-500 bg-red-900/90 p-4 text-center">
+        <div className="sabotage-shake fixed left-0 right-0 top-0 z-50 animate-pulse border-b-4 border-red-500 bg-red-900/90 p-4 text-center">
           <div className="text-xl font-bold text-red-400">⚠️ INCOMING SABOTAGE ⚠️</div>
           <div className="text-sm text-red-300">
             {incomingSabotage.attackerName} used {incomingSabotage.sabotageType ? getSabotageTypeName(incomingSabotage.sabotageType) : 'Sabotage'} on you!
@@ -278,29 +345,44 @@ export function Prompting({
                 Select Target
               </div>
               <div className="mb-4 space-y-2">
-                {otherPlayers.map((player) => (
-                  <button
-                    key={player.id}
-                    onClick={() => { void playClick(); setSelectedVictimId(player.id); }}
-                    className={`flex w-full items-center gap-3 rounded-lg border-2 p-3 transition-all ${
-                      selectedVictimId === player.id
-                        ? 'border-red-500 bg-red-900/30'
-                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                    }`}
-                  >
-                    {player.avatar ? (
-                      <img src={player.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700 font-bold">
-                        {player.name.charAt(0).toUpperCase()}
+                {otherPlayers.map((player) => {
+                  const isArmed = hasArmedSabotage(player.id);
+                  return (
+                    <button
+                      key={player.id}
+                      onClick={() => { void playClick(); setSelectedVictimId(player.id); }}
+                      className={`flex w-full items-center gap-3 rounded-lg border-2 p-3 transition-all ${
+                        selectedVictimId === player.id
+                          ? 'border-red-500 bg-red-900/30'
+                          : isArmed
+                            ? 'armed-indicator'
+                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className={`relative ${selectedVictimId === player.id ? 'crosshair-target' : ''}`}>
+                        {player.avatar ? (
+                          <img src={player.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700 font-bold">
+                            {player.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <span className="font-semibold text-white">{player.name}</span>
-                    {selectedVictimId === player.id && (
-                      <span className="ml-auto text-red-400">🎯</span>
-                    )}
-                  </button>
-                ))}
+                      <div className="flex flex-col items-start">
+                        <span className="font-semibold text-white">{player.name}</span>
+                        {isArmed && (
+                          <span className="text-xs text-red-400">💣 Sabotage Armed</span>
+                        )}
+                      </div>
+                      <div className="ml-auto flex items-center gap-2">
+                        {isArmed && <span className="text-sm text-red-400">⚡</span>}
+                        {selectedVictimId === player.id && (
+                          <span className="text-red-400">🎯</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={handleSabotage}

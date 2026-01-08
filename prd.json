@@ -481,7 +481,7 @@
         "Protected badge after 2 sabotages"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "Visual feedback for sabotage"
     },
     {

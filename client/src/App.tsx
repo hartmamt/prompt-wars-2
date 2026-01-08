@@ -147,6 +147,8 @@ function App() {
   const [resultsTotalRounds, setResultsTotalRounds] = useState(3);
   const [audioMuted, setAudioMuted] = useState(false);
   const [incomingSabotage, setIncomingSabotage] = useState<{ attackerName: string; sabotageType?: string } | null>(null);
+  const [armedSabotages, setArmedSabotages] = useState<{ victimId: string; attackerId: string }[]>([]);
+  const [sabotagesAgainstMe, setSabotagesAgainstMe] = useState(0);
   const audioInitializedRef = useRef(false);
   const prevPhaseRef = useRef<GamePhase>('home');
 
@@ -200,6 +202,9 @@ function App() {
       setGameState(data.gameState);
       setPhase(data.gameState.phase);
       setHasSubmittedPrompt(false);
+      // Clear sabotage tracking for new game
+      setArmedSabotages([]);
+      setSabotagesAgainstMe(0);
     };
 
     const onPromptSubmitted = (data: PromptSubmittedEvent) => {
@@ -315,15 +320,17 @@ function App() {
 
     const onIncomingSabotage = (data: { attackerName: string; sabotageType?: string }) => {
       setIncomingSabotage(data);
+      // Increment sabotages against current player
+      setSabotagesAgainstMe(prev => prev + 1);
       // Clear the sabotage warning after a few seconds
       setTimeout(() => {
         setIncomingSabotage(null);
       }, 5000);
     };
 
-    const onSabotageUsed = (_data: { attackerId: string; victimId: string; victimName: string }) => {
-      // Tokens will be updated when we get the next leaderboard update
-      // Could add a notification here if desired
+    const onSabotageUsed = (data: { attackerId: string; victimId: string; victimName: string }) => {
+      // Track armed sabotages for UI display
+      setArmedSabotages(prev => [...prev, { victimId: data.victimId, attackerId: data.attackerId }]);
     };
 
     socket.on('connect', onConnect);
@@ -515,6 +522,8 @@ function App() {
       // Reset state for next round
       setHasSubmittedPrompt(false);
       setRoundWinner(null);
+      // Clear armed sabotages for new round (sabotagesAgainstMe persists across rounds)
+      setArmedSabotages([]);
     });
   }, []);
 
@@ -578,6 +587,8 @@ function App() {
           currentPlayerTokens={currentPlayerTokens}
           onUseSabotage={handleUseSabotage}
           incomingSabotage={incomingSabotage as { attackerName: string; sabotageType?: 'word_injection' | 'style_override' | 'photobomb' | 'prompt_swap' | 'mystery_box' } | null}
+          armedSabotages={armedSabotages}
+          sabotagesAgainstMe={sabotagesAgainstMe}
         />
         <MuteButton />
       </div>

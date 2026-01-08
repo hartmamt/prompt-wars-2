@@ -845,3 +845,57 @@
   - History tracking enables both consecutive and per-game limits
   - Sabotage type selection adds strategic depth to gameplay
 ---
+
+## US-031: Sabotage UI & Animations
+**Status:** PASSED
+**Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+### Changes Made:
+1. **CSS Animations (index.css)**:
+   - Added `sabotage-flash` keyframe for screen edge flash effect
+   - Added `sabotage-shake` animation for warning shake
+   - Added `crosshair-pulse` animation for target crosshairs
+   - Added `token-earn` and `token-spend` animations
+   - Added `token-float` animation for floating token indicators
+   - Added `armed-pulse` animation for armed sabotage indicator
+   - Added `protected-badge` styling with shield emoji
+   - Added `photobomb-highlight` animation
+   - Added `sabotage-reveal` animation for results
+
+2. **Prompting.tsx Updates**:
+   - Added `SabotageTarget` interface
+   - Added `armedSabotages` and `sabotagesAgainstMe` props
+   - Added `showFlash` state for screen flash animation
+   - Added `tokenAnimation` state for token changes
+   - Added `useEffect` for flash animation on incoming sabotage
+   - Added `useEffect` for token change animation
+   - Added `hasArmedSabotage()` helper to check if player has armed sabotage
+   - Added `isProtected` check for protected badge (2+ sabotages)
+   - Updated UI with flash overlay, token animation display
+   - Added protected badge notification when player is protected
+   - Updated target selection with armed indicators and crosshairs
+   - Targets with armed sabotages show `armed-indicator` class
+
+3. **App.tsx Updates**:
+   - Added `armedSabotages` state array to track armed sabotages
+   - Added `sabotagesAgainstMe` state counter
+   - Updated `onSabotageUsed` handler to track armed sabotages
+   - Updated `onIncomingSabotage` to increment sabotagesAgainstMe
+   - Clear sabotage tracking on game start
+   - Clear armed sabotages on next round
+   - Pass new props to Prompting component
+
+4. **Results.tsx Updates**:
+   - Added `sabotage-reveal` animation class to winning image
+   - Added `photobomb-highlight` class when sabotage was applied
+   - Winning images that were sabotaged get visual highlight
+
+### Acceptance Criteria Met:
+- ✅ Red crosshair on targeted player (crosshair-target class applied to selected victim)
+- ✅ Armed sabotage indicator (armed-indicator class with pulsing border)
+- ✅ Incoming warning with screen edge flash (sabotage-flash animation + red overlay)
+- ✅ Dramatic sabotage reveal before images (sabotage-reveal animation on Results)
+- ✅ Photobomb highlight circle on image (photobomb-highlight class on sabotaged images)
+- ✅ Token earn/spend animations (token-float-earn/spend with floating effect)
+- ✅ Protected badge after 2 sabotages (protected badge notification with shield)
+
