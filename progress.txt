@@ -386,3 +386,21 @@
   - "Press Start 2P" is quite chunky, use smaller sizes than regular fonts
   - Terminal-btn uses ::before pseudo-element for "> " prefix
 ---
+
+## 2026-01-07 - US-017
+- What was implemented:
+  - **Already implemented in prior stories - no new code changes needed**
+  - Verified: Rotating humorous loading messages in Generating.tsx (20 messages, 2.5s interval)
+  - Verified: 'Teaching AI what fingers look like...' and similar messages present
+  - Verified: 'THE AI HAS ABANDONED US' in Home.tsx for disconnected state
+  - Verified: 'THE MACHINE SPIRIT IS DISPLEASED' in Generating.tsx for errors
+  - Verified: Progress bar goes backwards (5% chance on each tick)
+  - Verified: Fake 'AI Confidence' meter fluctuates randomly (50-95%)
+- Files changed:
+  - None (all functionality already present)
+- **Learnings for future iterations:**
+  - Some user stories overlap with earlier implementations
+  - Always check existing code before implementing
+  - US-009 implemented most of US-017's requirements
+  - US-015 added the connection lost message
+---
