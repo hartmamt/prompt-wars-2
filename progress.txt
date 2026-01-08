@@ -118,3 +118,24 @@
   - THEME_CATEGORIES array for UI category selectors
   - Theme IDs follow pattern: {category-abbrev}-{number} (e.g., pc-1, as-25)
 ---
+
+## 2026-01-07 - US-006
+- What was implemented:
+  - Host sees category selector dropdown in lobby
+  - Options: All Categories (default) + all 7 individual categories
+  - Selected category stored in game state (room.gameState.category)
+  - Category name displayed to non-host players
+  - Server validates only host can change category
+  - set-category socket event broadcasts to all players
+- Files changed:
+  - server/src/types.ts (added CategorySelection type, usedThemeIds to GameState)
+  - server/src/roomManager.ts (added updateRoomCategory function, category initialization)
+  - server/src/socketHandlers.ts (added set-category handler, category in RoomResponse)
+  - client/src/types.ts (added CategorySelection, CATEGORY_OPTIONS)
+  - client/src/components/Lobby.tsx (added category selector and display)
+  - client/src/App.tsx (added handleSetCategory)
+- **Learnings for future iterations:**
+  - Only host can change category (enforced server-side)
+  - Category can only be changed in lobby phase
+  - usedThemeIds Set added to track used themes per game session
+---

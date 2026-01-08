@@ -6,14 +6,16 @@ import {
   getPlayersArray,
   canStartGame,
   updatePlayerReady,
+  updateRoomCategory,
 } from './roomManager.js';
-import type { Player, Room } from './types.js';
+import type { Player, Room, CategorySelection } from './types.js';
 
 interface RoomResponse {
   code: string;
   players: Player[];
   hostId: string | null;
   canStart: boolean;
+  category: CategorySelection;
 }
 
 function roomToResponse(room: Room): RoomResponse {
@@ -22,6 +24,7 @@ function roomToResponse(room: Room): RoomResponse {
     players: getPlayersArray(room),
     hostId: room.hostId,
     canStart: canStartGame(room),
+    category: room.gameState.category,
   };
 }
 
@@ -75,6 +78,16 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     // Update ready status
     socket.on('player-ready', (data: { isReady: boolean }) => {
       const room = updatePlayerReady(socket.id, data.isReady);
+      if (room) {
+        io.to(room.code).emit('room-updated', {
+          room: roomToResponse(room),
+        });
+      }
+    });
+
+    // Update category (host only)
+    socket.on('set-category', (data: { category: CategorySelection }) => {
+      const room = updateRoomCategory(socket.id, data.category);
       if (room) {
         io.to(room.code).emit('room-updated', {
           room: roomToResponse(room),

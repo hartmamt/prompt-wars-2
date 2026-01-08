@@ -1,4 +1,5 @@
-import type { RoomState, Player } from '../types';
+import type { RoomState, Player, CategorySelection } from '../types';
+import { CATEGORY_OPTIONS } from '../types';
 
 interface LobbyProps {
   room: RoomState;
@@ -6,6 +7,7 @@ interface LobbyProps {
   onStartGame: () => void;
   onLeaveRoom: () => void;
   onToggleReady: () => void;
+  onSetCategory: (category: CategorySelection) => void;
 }
 
 function PlayerCard({ player, isCurrentPlayer }: { player: Player; isCurrentPlayer: boolean }) {
@@ -48,7 +50,14 @@ function PlayerCard({ player, isCurrentPlayer }: { player: Player; isCurrentPlay
   );
 }
 
-export function Lobby({ room, currentPlayerId, onStartGame, onLeaveRoom, onToggleReady }: LobbyProps) {
+export function Lobby({
+  room,
+  currentPlayerId,
+  onStartGame,
+  onLeaveRoom,
+  onToggleReady,
+  onSetCategory,
+}: LobbyProps) {
   const currentPlayer = room.players.find((p) => p.id === currentPlayerId);
   const isHost = currentPlayer?.isHost ?? false;
   const isReady = currentPlayer?.isReady ?? false;
@@ -74,6 +83,34 @@ export function Lobby({ room, currentPlayerId, onStartGame, onLeaveRoom, onToggl
         </div>
         <div className="mt-2 text-xs text-gray-500">Share this code with your opponents</div>
       </div>
+
+      {/* Category Selection (Host Only) */}
+      {isHost && (
+        <div className="mb-8 w-full max-w-md">
+          <h2 className="mb-3 text-center text-sm font-bold uppercase tracking-wider text-gray-400">
+            ◆ THEME CATEGORY ◆
+          </h2>
+          <select
+            value={room.category}
+            onChange={(e) => onSetCategory(e.target.value as CategorySelection)}
+            className="w-full rounded-lg border-2 border-prompt-purple bg-gray-900 px-4 py-3 text-white focus:border-prompt-pink focus:outline-none"
+          >
+            {CATEGORY_OPTIONS.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Category Display (Non-Host) */}
+      {!isHost && (
+        <div className="mb-8 rounded-lg border border-gray-700 bg-gray-900/50 px-4 py-2 text-center">
+          <span className="text-xs text-gray-500">Category: </span>
+          <span className="text-sm font-semibold text-prompt-purple">{room.category}</span>
+        </div>
+      )}
 
       {/* Player List */}
       <div className="mb-8 w-full max-w-md">

@@ -97,7 +97,7 @@
         "Themes filtered by selected category"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Lets groups pick their humor style"
     },
     {

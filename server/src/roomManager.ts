@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection } from './types.js';
 
 const rooms = new Map<string, Room>();
 const playerToRoom = new Map<string, string>();
@@ -37,6 +37,8 @@ export function createRoom(socketId: string, playerName: string): Room {
       phase: 'lobby',
       round: 1,
       totalRounds: 3,
+      category: 'All Categories',
+      usedThemeIds: new Set(),
     },
   };
 
@@ -162,5 +164,20 @@ export function updatePlayerAvatar(socketId: string, avatar: string): Room | nul
   if (!player) return null;
 
   player.avatar = avatar;
+  return room;
+}
+
+export function updateRoomCategory(socketId: string, category: CategorySelection): Room | null {
+  const room = getRoomBySocketId(socketId);
+  if (!room) return null;
+
+  // Only host can change category
+  const player = room.players.get(socketId);
+  if (!player?.isHost) return null;
+
+  // Can only change category in lobby phase
+  if (room.gameState.phase !== 'lobby') return null;
+
+  room.gameState.category = category;
   return room;
 }

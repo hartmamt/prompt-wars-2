@@ -3,7 +3,7 @@ import { socket, connectSocket } from './socket';
 import { setupDiscord, isInDiscord, type DiscordUser } from './discord';
 import { Home } from './components/Home';
 import { Lobby } from './components/Lobby';
-import type { RoomState, GamePhase, Player } from './types';
+import type { RoomState, GamePhase, Player, CategorySelection } from './types';
 
 interface RoomResponse {
   success: boolean;
@@ -146,6 +146,10 @@ function App() {
     console.log('Start game');
   }, []);
 
+  const handleSetCategory = useCallback((category: CategorySelection) => {
+    socket.emit('set-category', { category });
+  }, []);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-prompt-black">
@@ -162,6 +166,7 @@ function App() {
         onStartGame={handleStartGame}
         onLeaveRoom={handleLeaveRoom}
         onToggleReady={handleToggleReady}
+        onSetCategory={handleSetCategory}
       />
     );
   }
