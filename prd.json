@@ -574,8 +574,8 @@
         "Server logs show no startup errors"
       ],
       "priority": 37,
-      "passes": false,
-      "notes": "Production server hosting"
+      "passes": true,
+      "notes": "Production server hosting - prompt-wars-2-server.onrender.com"
     },
     {
       "id": "US-038",
@@ -589,8 +589,8 @@
         "CORS_ORIGIN on server updated with client URL"
       ],
       "priority": 38,
-      "passes": false,
-      "notes": "Production client hosting"
+      "passes": true,
+      "notes": "Production client hosting - prompt-wars-2-client.onrender.com"
     },
     {
       "id": "US-039",
@@ -605,8 +605,8 @@
         "Discord authentication works"
       ],
       "priority": 39,
-      "passes": false,
-      "notes": "Discord integration"
+      "passes": true,
+      "notes": "Discord integration - URL mappings and OAuth2 configured"
     },
     {
       "id": "US-040",
