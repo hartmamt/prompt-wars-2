@@ -25,6 +25,7 @@ import {
   getRoundWinner,
   transitionToResults,
   startNextRound,
+  resetGame,
 } from './roomManager.js';
 import { generateImage } from './flux.js';
 import type { Player, Room, CategorySelection, GamePhase } from './types.js';
@@ -363,6 +364,23 @@ export function setupSocketHandlers(io: SocketIOServer): void {
           gameState: gameStateToResponse(result.room),
         });
       }
+
+      callback({ success: true });
+    });
+
+    // Play again (host only, from final results)
+    socket.on('play-again', (callback: (response: { success: boolean; error?: string }) => void) => {
+      const result = resetGame(socket.id);
+
+      if (!result.success || !result.room) {
+        callback({ success: false, error: result.error });
+        return;
+      }
+
+      // Notify all players that game has been reset to lobby
+      io.to(result.room.code).emit('game-reset', {
+        room: roomToResponse(result.room),
+      });
 
       callback({ success: true });
     });

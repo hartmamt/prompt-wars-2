@@ -7,6 +7,7 @@ import { Prompting } from './components/Prompting';
 import { Generating } from './components/Generating';
 import { Voting } from './components/Voting';
 import { Results } from './components/Results';
+import { FinalResults } from './components/FinalResults';
 import type { RoomState, GamePhase, Player, CategorySelection, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
 
 interface RoomResponse {
@@ -101,6 +102,15 @@ interface RoundResultsEvent {
   theme: string;
   roundNumber: number;
   totalRounds: number;
+}
+
+interface FinalResultsEvent {
+  gameState: GameState;
+  leaderboard: LeaderboardEntry[];
+}
+
+interface GameResetEvent {
+  room: RoomState;
 }
 
 function App() {
@@ -263,6 +273,21 @@ function App() {
       setPhase('results');
     };
 
+    const onFinalResults = (data: FinalResultsEvent) => {
+      setGameState(data.gameState);
+      setLeaderboard(data.leaderboard);
+      setPhase('final');
+    };
+
+    const onGameReset = (data: GameResetEvent) => {
+      setRoom(data.room);
+      setGameState(null);
+      setPhase('lobby');
+      setHasSubmittedPrompt(false);
+      setRoundWinner(null);
+      setLeaderboard([]);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('player-joined', onPlayerJoined);
@@ -279,6 +304,8 @@ function App() {
     socket.on('matchup-result', onMatchupResult);
     socket.on('voting-complete', onVotingComplete);
     socket.on('round-results', onRoundResults);
+    socket.on('final-results', onFinalResults);
+    socket.on('game-reset', onGameReset);
 
     // Check if already connected
     if (socket.connected) {
@@ -302,6 +329,8 @@ function App() {
       socket.off('matchup-result', onMatchupResult);
       socket.off('voting-complete', onVotingComplete);
       socket.off('round-results', onRoundResults);
+      socket.off('final-results', onFinalResults);
+      socket.off('game-reset', onGameReset);
     };
   }, [currentPlayerId]);
 
@@ -390,6 +419,25 @@ function App() {
     });
   }, []);
 
+  const handlePlayAgain = useCallback(() => {
+    socket.emit('play-again', (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error ?? 'Failed to restart game');
+      }
+    });
+  }, []);
+
+  const handleReturnHome = useCallback(() => {
+    socket.emit('leave-room', () => {
+      setRoom(null);
+      setGameState(null);
+      setPhase('home');
+      setHasSubmittedPrompt(false);
+      setLeaderboard([]);
+      setRoundWinner(null);
+    });
+  }, []);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-prompt-black">
@@ -457,6 +505,21 @@ function App() {
         leaderboard={leaderboard}
         currentPlayerId={currentPlayerId}
         onContinue={handleNextRound}
+        isHost={isHost}
+      />
+    );
+  }
+
+  // Final results phase
+  if (phase === 'final' && room) {
+    const isHost = room.players.find((p) => p.id === currentPlayerId)?.isHost ?? false;
+
+    return (
+      <FinalResults
+        leaderboard={leaderboard}
+        currentPlayerId={currentPlayerId}
+        onPlayAgain={handlePlayAgain}
+        onReturnHome={handleReturnHome}
         isHost={isHost}
       />
     );

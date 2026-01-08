@@ -858,3 +858,45 @@ export function startNextRound(roomCode: string): StartNextRoundResult {
 
   return { success: true, room, isFinal: false };
 }
+
+export interface ResetGameResult {
+  success: boolean;
+  error?: string;
+  room?: Room;
+}
+
+export function resetGame(socketId: string): ResetGameResult {
+  const room = getRoomBySocketId(socketId);
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  // Only host can reset game
+  const player = room.players.get(socketId);
+  if (!player?.isHost) {
+    return { success: false, error: 'Only host can reset game' };
+  }
+
+  // Can only reset from final phase
+  if (room.gameState.phase !== 'final') {
+    return { success: false, error: 'Can only reset from final results' };
+  }
+
+  // Reset game state
+  room.gameState = {
+    phase: 'lobby',
+    round: 1,
+    totalRounds: 3,
+    category: room.gameState.category, // Keep the selected category
+    usedThemeIds: new Set(),
+    currentRound: null,
+    scores: new Map(),
+  };
+
+  // Reset all players' ready status
+  for (const [, p] of room.players) {
+    p.isReady = false;
+  }
+
+  return { success: true, room };
+}
