@@ -235,7 +235,7 @@
         "No generic/boring text anywhere"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Personality that makes game memorable"
     },
     {

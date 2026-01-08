@@ -336,3 +336,26 @@
   - Most US-014 functionality was already implemented in prior stories
   - This story mainly added robust edge case handling for player disconnects
 ---
+
+## 2026-01-07 - US-015
+- What was implemented:
+  - Home screen personality: "NEURAL LINK ESTABLISHED" / "THE AI HAS ABANDONED US" for connection status
+  - Home buttons: "START NEW BATTLE", "JOIN THE FRAY" with emojis
+  - Create/Join headers: "SUMMON THE ARENA", "INFILTRATE THE BATTLE"
+  - Form labels: "WARRIOR NAME", "SECRET ACCESS CODE"
+  - Action buttons: "FORGE THE BATTLEFIELD", "BREACH THE PERIMETER", "RETREAT"
+  - Voting error: "THE MACHINE SPIRIT REJECTED THIS ONE" for failed images
+  - Spectate message: "SPECTATE MODE: Your fate is in the hands of the council"
+  - Verified existing text already styled:
+    - Lobby: "PROMPT WARRIORS ASSEMBLE", "CLASSIFIED", "REGISTERED COMBATANTS", "INITIATE PROMPT WARFARE"
+    - Prompting: "CRAFT YOUR INCANTATION", "SUBMIT INCANTATION"
+    - Generating: 20 humorous loading messages, "THE MACHINE SPIRIT IS DISPLEASED"
+- Files changed:
+  - client/src/components/Home.tsx (added themed text and emojis)
+  - client/src/components/Voting.tsx (updated error and spectate messages)
+- **Learnings for future iterations:**
+  - Most personality text was already implemented in previous stories
+  - Use ◆ symbols for decorative label markers
+  - Emojis work well in button text for visual emphasis
+  - Keep placeholder text on-brand too ("Choose wisely, champion...")
+---
