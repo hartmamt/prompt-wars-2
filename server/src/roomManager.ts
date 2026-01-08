@@ -1,6 +1,7 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND, Sabotage } from './types.js';
 import { getRandomTheme } from './themes.js';
 import { getRandomModifier, applyModifier } from './modifiers.js';
+import { getRandomInjection, SABOTAGE_COST } from './sabotage.js';
 
 const rooms = new Map<string, Room>();
 const playerToRoom = new Map<string, string>();
@@ -295,6 +296,7 @@ export function startGame(socketId: string): StartGameResult {
     currentMatchupIndex: 0,
     phaseStartTime: now,
     phaseEndTime: endTime,
+    sabotages: [],
   };
 
   room.gameState.phase = 'prompting';
@@ -362,6 +364,20 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
     modifierText = modifier.text;
   }
 
+  // Check for sabotages against this player
+  let sabotagedPrompt: string | null = null;
+  let sabotageText: string | null = null;
+  let sabotageAttackerId: string | null = null;
+
+  const sabotage = room.gameState.currentRound.sabotages.find(s => s.victimId === socketId);
+  if (sabotage) {
+    // Apply sabotage to the prompt (use modified prompt if exists, otherwise original)
+    const basePrompt = modifiedPrompt ?? trimmedPrompt;
+    sabotagedPrompt = `${basePrompt}, ${sabotage.injectionText}`;
+    sabotageText = sabotage.injectionText;
+    sabotageAttackerId = sabotage.attackerId;
+  }
+
   // Store the prompt
   room.gameState.currentRound.prompts.set(socketId, {
     playerId: socketId,
@@ -369,6 +385,9 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
     modifiedPrompt,
     modifierId,
     modifierText,
+    sabotagedPrompt,
+    sabotageText,
+    sabotageAttackerId,
     submittedAt: new Date(),
   });
 
@@ -381,6 +400,82 @@ export function submitPrompt(socketId: string, prompt: string): SubmitPromptResu
 export function getSubmittedPlayerIds(room: Room): string[] {
   if (!room.gameState.currentRound) return [];
   return Array.from(room.gameState.currentRound.prompts.keys());
+}
+
+export interface UseSabotageResult {
+  success: boolean;
+  error?: string;
+  room?: Room;
+  sabotage?: Sabotage;
+}
+
+export function useSabotage(attackerSocketId: string, victimId: string): UseSabotageResult {
+  const room = getRoomBySocketId(attackerSocketId);
+  if (!room) {
+    return { success: false, error: 'Room not found' };
+  }
+
+  if (room.gameState.phase !== 'prompting') {
+    return { success: false, error: 'Not in prompting phase' };
+  }
+
+  if (!room.gameState.currentRound) {
+    return { success: false, error: 'No active round' };
+  }
+
+  // Cannot sabotage yourself
+  if (attackerSocketId === victimId) {
+    return { success: false, error: 'Cannot sabotage yourself' };
+  }
+
+  // Check victim is in the room
+  if (!room.players.has(victimId)) {
+    return { success: false, error: 'Target not in room' };
+  }
+
+  // Check if already sabotaged this player this round
+  const existingSabotage = room.gameState.currentRound.sabotages.find(
+    s => s.attackerId === attackerSocketId && s.victimId === victimId
+  );
+  if (existingSabotage) {
+    return { success: false, error: 'Already sabotaged this player this round' };
+  }
+
+  // Check if attacker has enough tokens
+  const attackerScore = room.gameState.scores.get(attackerSocketId);
+  if (!attackerScore || attackerScore.tokens < SABOTAGE_COST) {
+    return { success: false, error: 'Not enough tokens' };
+  }
+
+  // Get a random injection
+  const usedInjectionIds = new Set(room.gameState.currentRound.sabotages.map(s => s.injectionId));
+  const injection = getRandomInjection(usedInjectionIds);
+
+  // Spend tokens
+  attackerScore.tokens -= SABOTAGE_COST;
+
+  // Create the sabotage
+  const sabotage: Sabotage = {
+    attackerId: attackerSocketId,
+    victimId,
+    injectionId: injection.id,
+    injectionText: injection.text,
+    appliedAt: new Date(),
+  };
+
+  room.gameState.currentRound.sabotages.push(sabotage);
+
+  return { success: true, room, sabotage };
+}
+
+export function getSabotagesAgainstPlayer(room: Room, playerId: string): Sabotage[] {
+  if (!room.gameState.currentRound) return [];
+  return room.gameState.currentRound.sabotages.filter(s => s.victimId === playerId);
+}
+
+export function getSabotagesByPlayer(room: Room, playerId: string): Sabotage[] {
+  if (!room.gameState.currentRound) return [];
+  return room.gameState.currentRound.sabotages.filter(s => s.attackerId === playerId);
 }
 
 export interface StartGeneratingResult {
@@ -407,10 +502,10 @@ export function startGenerating(roomCode: string): StartGeneratingResult {
   // Transition to generating phase
   room.gameState.phase = 'generating';
 
-  // Extract prompts for generation (use modifiedPrompt if chaos mode was enabled)
+  // Extract prompts for generation (priority: sabotaged > modified > original)
   const prompts = Array.from(room.gameState.currentRound.prompts.values()).map((p) => ({
     playerId: p.playerId,
-    prompt: p.modifiedPrompt ?? p.prompt, // Use modified prompt if available
+    prompt: p.sabotagedPrompt ?? p.modifiedPrompt ?? p.prompt,
   }));
 
   return { success: true, room, prompts };
@@ -867,6 +962,8 @@ export interface RoundWinnerData {
   playerAvatar: string | null;
   prompt: string;
   modifierText: string | null;
+  sabotageText: string | null;
+  sabotageAttackerName: string | null;
   imageBase64: string | null;
   totalVotesReceived: number;
 }
@@ -900,12 +997,20 @@ export function getRoundWinner(room: Room): RoundWinnerData | null {
   const prompt = room.gameState.currentRound.prompts.get(winnerId);
   const image = room.gameState.currentRound.generatedImages.get(winnerId);
 
+  // Get sabotage attacker name if there was one
+  let sabotageAttackerName: string | null = null;
+  if (prompt?.sabotageAttackerId) {
+    sabotageAttackerName = getPlayerName(room, prompt.sabotageAttackerId);
+  }
+
   return {
     playerId: winnerId,
     playerName: getPlayerName(room, winnerId),
     playerAvatar: getPlayerAvatar(room, winnerId),
     prompt: prompt?.prompt ?? '',
     modifierText: prompt?.modifierText ?? null,
+    sabotageText: prompt?.sabotageText ?? null,
+    sabotageAttackerName,
     imageBase64: image?.imageBase64 ?? null,
     totalVotesReceived: maxVotes,
   };
@@ -991,6 +1096,7 @@ export function startNextRound(roomCode: string): StartNextRoundResult {
     currentMatchupIndex: 0,
     phaseStartTime: now,
     phaseEndTime: endTime,
+    sabotages: [],
   };
 
   room.gameState.phase = 'prompting';

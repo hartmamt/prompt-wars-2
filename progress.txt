@@ -698,3 +698,96 @@
   - Store both original and modified prompt for display purposes
   - Modifier patterns matter: "but X" vs "in the style of X" vs "at X"
 ---
+
+## 2026-01-08 - US-028
+- What was implemented:
+  - Token constants in server/src/types.ts:
+    - INITIAL_TOKENS = 2
+    - TOKENS_WIN_MATCHUP = 1
+    - TOKENS_MAJORITY_VOTE = 1
+    - TOKENS_WIN_ROUND = 2
+  - Added tokens field to PlayerScore interface
+  - Score initialization includes tokens: INITIAL_TOKENS
+  - calculateMatchupScores() awards:
+    - TOKENS_WIN_MATCHUP to matchup winner
+    - TOKENS_MAJORITY_VOTE to all voters who voted for the winner
+    - Returns tokenChanges array in MatchupResult
+  - transitionToResults() awards TOKENS_WIN_ROUND to round winner
+  - LeaderboardEntry includes tokens for display
+  - matchup-result event includes tokenChanges
+  - round-results event includes roundWinnerTokenChange
+  - Client types updated: LeaderboardEntry.tokens, TokenChange interface
+  - Results.tsx: tokens displayed next to wins in leaderboard
+  - FinalResults.tsx: tokens displayed for winner and other players
+- Files changed:
+  - server/src/types.ts (token constants, tokens in PlayerScore)
+  - server/src/roomManager.ts (token awarding logic, LeaderboardEntry.tokens)
+  - server/src/socketHandlers.ts (tokenChanges in events)
+  - client/src/types.ts (tokens in LeaderboardEntry, TokenChange interface)
+  - client/src/components/Results.tsx (token display in leaderboard)
+  - client/src/components/FinalResults.tsx (token display for all players)
+- **Learnings for future iterations:**
+  - Token economy can be expanded for sabotage spending
+  - tokenChanges array allows animated token earn effects on client
+  - Majority vote bonus rewards voting with the winning side
+  - Round winner tokens are separate from matchup winner tokens
+---
+
+## US-029: Sabotage - Word Injection
+- **Status:** COMPLETED
+- **Quality gates:**
+  - [x] TypeScript: All types compile cleanly
+  - [x] ESLint: No warnings or errors
+  - [x] Functionality: Sabotage system implemented
+- **Implementation details:**
+  - Created server/src/sabotage.ts:
+    - 55 sabotage injection phrases across 5 categories:
+      - appearance (15): "wearing crocs", "with a mullet", etc.
+      - object (10): "holding a plunger", "balancing a pizza", etc.
+      - setting (10): "in a DMV waiting room", "at a dentist office", etc.
+      - action (10): "doing taxes", "awkwardly dabbing", etc.
+      - style (10): "in crayon drawing style", "as a bad tattoo", etc.
+    - SABOTAGE_COST = 2 tokens
+    - getRandomInjection() with exclude list for variety
+    - applySabotage() appends injection to original prompt
+  - Added Sabotage interface to types.ts:
+    - attackerId, victimId, injectionId, injectionText, appliedAt
+  - Extended PlayerPrompt with sabotage fields:
+    - sabotagedPrompt, sabotageText, sabotageAttackerId
+  - Added sabotages array to RoundState
+  - roomManager.ts useSabotage():
+    - Validates phase (prompting), room, attacker tokens
+    - Deducts SABOTAGE_COST from attacker
+    - Creates sabotage record in room.gameState.currentRound.sabotages
+    - Returns sabotage info for socket events
+  - submitPrompt() applies any pending sabotages to player's prompt
+  - startGenerating() uses sabotagedPrompt for image generation
+  - getRoundWinner() includes sabotageText and sabotageAttackerName
+  - Socket events:
+    - use-sabotage: Player initiates sabotage against target
+    - incoming-sabotage: Victim receives warning notification
+    - sabotage-used: All players notified of sabotage
+    - round-results: Includes sabotage info for winner display
+  - Prompting.tsx UI:
+    - Sabotage panel button (costs 2 tokens, shows current token count)
+    - Target selection list with player avatars
+    - Confirm sabotage button
+    - "INCOMING SABOTAGE" warning banner when targeted
+    - Panel disabled when insufficient tokens
+  - Results.tsx:
+    - Shows "SABOTAGED BY {attackerName}" section
+    - Displays sabotage injection text under chaos modifier
+- Files changed:
+  - server/src/sabotage.ts (NEW - sabotage injections and utility functions)
+  - server/src/types.ts (Sabotage interface, PlayerPrompt sabotage fields)
+  - server/src/roomManager.ts (useSabotage, sabotage application logic)
+  - server/src/socketHandlers.ts (use-sabotage handler, sabotage events)
+  - client/src/App.tsx (sabotage state, socket handlers, Prompting props)
+  - client/src/components/Prompting.tsx (sabotage UI panel, target selection)
+  - client/src/components/Results.tsx (sabotage display for winner)
+- **Learnings for future iterations:**
+  - Sabotage is applied when prompt is submitted, not when cast
+  - Multiple sabotages can stack on one player
+  - Victim only sees warning, not what injection will be used
+  - Token deduction happens immediately on sabotage cast
+---

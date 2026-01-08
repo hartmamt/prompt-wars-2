@@ -95,6 +95,8 @@ interface RoundWinner {
   playerAvatar: string | null;
   prompt: string;
   modifierText: string | null;
+  sabotageText: string | null;
+  sabotageAttackerName: string | null;
   imageBase64: string | null;
   votesReceived: number;
 }
@@ -144,6 +146,7 @@ function App() {
   const [resultsRoundNumber, setResultsRoundNumber] = useState(1);
   const [resultsTotalRounds, setResultsTotalRounds] = useState(3);
   const [audioMuted, setAudioMuted] = useState(false);
+  const [incomingSabotage, setIncomingSabotage] = useState<{ attackerName: string } | null>(null);
   const audioInitializedRef = useRef(false);
   const prevPhaseRef = useRef<GamePhase>('home');
 
@@ -310,6 +313,19 @@ function App() {
       setError(data.reason);
     };
 
+    const onIncomingSabotage = (data: { attackerName: string }) => {
+      setIncomingSabotage(data);
+      // Clear the sabotage warning after a few seconds
+      setTimeout(() => {
+        setIncomingSabotage(null);
+      }, 5000);
+    };
+
+    const onSabotageUsed = (_data: { attackerId: string; victimId: string; victimName: string }) => {
+      // Tokens will be updated when we get the next leaderboard update
+      // Could add a notification here if desired
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('player-joined', onPlayerJoined);
@@ -329,6 +345,8 @@ function App() {
     socket.on('final-results', onFinalResults);
     socket.on('game-reset', onGameReset);
     socket.on('game-ended', onGameEnded);
+    socket.on('incoming-sabotage', onIncomingSabotage);
+    socket.on('sabotage-used', onSabotageUsed);
 
     // Check if already connected
     if (socket.connected) {
@@ -355,6 +373,8 @@ function App() {
       socket.off('final-results', onFinalResults);
       socket.off('game-reset', onGameReset);
       socket.off('game-ended', onGameEnded);
+      socket.off('incoming-sabotage', onIncomingSabotage);
+      socket.off('sabotage-used', onSabotageUsed);
     };
   }, [currentPlayerId]);
 
@@ -479,6 +499,14 @@ function App() {
     });
   }, []);
 
+  const handleUseSabotage = useCallback((victimId: string) => {
+    socket.emit('use-sabotage', { victimId }, (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setError(response.error ?? 'Failed to use sabotage');
+      }
+    });
+  }, []);
+
   const handleNextRound = useCallback(() => {
     socket.emit('next-round', (response: { success: boolean; error?: string }) => {
       if (!response.success) {
@@ -533,6 +561,9 @@ function App() {
 
   // Prompting phase
   if (phase === 'prompting' && gameState?.currentRound && room) {
+    // Get current player's tokens from leaderboard or default to initial tokens (2)
+    const currentPlayerTokens = leaderboard.find(e => e.playerId === currentPlayerId)?.tokens ?? 2;
+
     return (
       <div onClick={handleInitAudio}>
         <Prompting
@@ -542,6 +573,11 @@ function App() {
           submittedPlayerIds={gameState.currentRound.submittedPlayerIds}
           totalPlayers={room.players.length}
           onSubmitPrompt={handleSubmitPrompt}
+          players={room.players}
+          currentPlayerId={currentPlayerId}
+          currentPlayerTokens={currentPlayerTokens}
+          onUseSabotage={handleUseSabotage}
+          incomingSabotage={incomingSabotage}
         />
         <MuteButton />
       </div>

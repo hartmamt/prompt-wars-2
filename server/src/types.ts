@@ -40,6 +40,9 @@ export interface PlayerPrompt {
   modifiedPrompt: string | null; // Prompt with modifier applied (null if chaos mode off)
   modifierId: string | null; // ID of modifier applied (null if chaos mode off)
   modifierText: string | null; // Text of modifier applied (null if chaos mode off)
+  sabotagedPrompt: string | null; // Prompt after sabotage applied
+  sabotageText: string | null; // The sabotage injection text
+  sabotageAttackerId: string | null; // Who sabotaged this player
   submittedAt: Date;
 }
 
@@ -66,6 +69,14 @@ export interface Matchup {
 
 export const VOTING_DURATION_MS = 60 * 1000; // 60 seconds per matchup
 
+export interface Sabotage {
+  attackerId: string;
+  victimId: string;
+  injectionId: string;
+  injectionText: string;
+  appliedAt: Date;
+}
+
 export interface RoundState {
   themeId: string;
   themeText: string;
@@ -75,6 +86,7 @@ export interface RoundState {
   currentMatchupIndex: number;
   phaseStartTime: Date;
   phaseEndTime: Date;
+  sabotages: Sabotage[];
 }
 
 export interface PlayerScore {

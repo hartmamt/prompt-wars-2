@@ -434,7 +434,7 @@
         "Tokens reset each game"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "Currency for sabotage system"
     },
     {
@@ -450,7 +450,7 @@
         "Sabotage revealed in results"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "Basic sabotage type"
     },
     {

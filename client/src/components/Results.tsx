@@ -8,6 +8,8 @@ interface RoundWinner {
   playerAvatar: string | null;
   prompt: string;
   modifierText: string | null;
+  sabotageText: string | null;
+  sabotageAttackerName: string | null;
   imageBase64: string | null;
   votesReceived: number;
 }
@@ -125,6 +127,16 @@ export function Results({
                     </div>
                     <p className="font-mono text-sm text-prompt-pink/80 md:text-base">
                       + {roundWinner.modifierText}
+                    </p>
+                  </div>
+                )}
+                {roundWinner.sabotageText && (
+                  <div className="mt-3 border-t border-red-900/50 pt-3">
+                    <div className="mb-1 text-xs font-bold uppercase tracking-widest text-red-500">
+                      SABOTAGED BY {roundWinner.sabotageAttackerName?.toUpperCase()}
+                    </div>
+                    <p className="font-mono text-sm text-red-400/80 md:text-base">
+                      + {roundWinner.sabotageText}
                     </p>
                   </div>
                 )}

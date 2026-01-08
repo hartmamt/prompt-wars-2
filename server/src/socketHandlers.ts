@@ -13,6 +13,7 @@ import {
   startGame,
   submitPrompt,
   getSubmittedPlayerIds,
+  useSabotage,
   startGenerating,
   storeGeneratedImage,
   getGeneratedCount,
@@ -226,6 +227,39 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       }
     });
 
+    // Use sabotage
+    socket.on('use-sabotage', (data: { victimId: string }, callback: (response: { success: boolean; error?: string; tokensRemaining?: number }) => void) => {
+      const result = useSabotage(socket.id, data.victimId);
+
+      if (!result.success || !result.room || !result.sabotage) {
+        callback({ success: false, error: result.error });
+        return;
+      }
+
+      const attackerScore = result.room.gameState.scores.get(socket.id);
+      const victimName = getPlayerName(result.room, data.victimId);
+      const attackerName = getPlayerName(result.room, socket.id);
+
+      // Notify the attacker of their remaining tokens
+      callback({ success: true, tokensRemaining: attackerScore?.tokens ?? 0 });
+
+      // Notify the victim they've been sabotaged
+      io.to(data.victimId).emit('incoming-sabotage', {
+        attackerId: socket.id,
+        attackerName,
+        message: 'INCOMING SABOTAGE',
+      });
+
+      // Notify all players about the sabotage (without revealing the injection)
+      io.to(result.room.code).emit('sabotage-used', {
+        attackerId: socket.id,
+        attackerName,
+        victimId: data.victimId,
+        victimName,
+        leaderboard: getLeaderboard(result.room),
+      });
+    });
+
     // Cast vote
     socket.on('cast-vote', (data: { votedForPlayerId: string }, callback: (response: { success: boolean; error?: string }) => void) => {
       const result = castVote(socket.id, data.votedForPlayerId);
@@ -283,6 +317,8 @@ export function setupSocketHandlers(io: SocketIOServer): void {
               playerName: roundWinner.playerName,
               prompt: roundWinner.prompt,
               modifierText: roundWinner.modifierText,
+              sabotageText: roundWinner.sabotageText,
+              sabotageAttackerName: roundWinner.sabotageAttackerName,
               imageBase64: roundWinner.imageBase64,
               votesReceived: roundWinner.totalVotesReceived,
             } : null,
@@ -358,6 +394,8 @@ export function setupSocketHandlers(io: SocketIOServer): void {
             playerName: roundWinner.playerName,
             prompt: roundWinner.prompt,
             modifierText: roundWinner.modifierText,
+            sabotageText: roundWinner.sabotageText,
+            sabotageAttackerName: roundWinner.sabotageAttackerName,
             imageBase64: roundWinner.imageBase64,
             votesReceived: roundWinner.totalVotesReceived,
           } : null,
