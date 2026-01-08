@@ -89,7 +89,14 @@ export function joinRoom(code: string, socketId: string, playerName: string): Jo
   return { success: true, room, player };
 }
 
-export function leaveRoom(socketId: string): { room: Room; wasHost: boolean; newHostId: string | null } | null {
+export interface LeaveRoomResult {
+  room: Room;
+  wasHost: boolean;
+  newHostId: string | null;
+  gameEnded: boolean;
+}
+
+export function leaveRoom(socketId: string): LeaveRoomResult | null {
   const code = playerToRoom.get(socketId);
   if (!code) return null;
 
@@ -100,15 +107,18 @@ export function leaveRoom(socketId: string): { room: Room; wasHost: boolean; new
   if (!player) return null;
 
   const wasHost = player.isHost;
+  const wasInGame = room.gameState.phase !== 'lobby' && room.gameState.phase !== 'final';
+
   room.players.delete(socketId);
   playerToRoom.delete(socketId);
 
   let newHostId: string | null = null;
+  let gameEnded = false;
 
   // If room is empty, delete it
   if (room.players.size === 0) {
     rooms.delete(code);
-    return { room, wasHost, newHostId: null };
+    return { room, wasHost, newHostId: null, gameEnded: false };
   }
 
   // If the leaving player was host, assign new host
@@ -123,7 +133,23 @@ export function leaveRoom(socketId: string): { room: Room; wasHost: boolean; new
     }
   }
 
-  return { room, wasHost, newHostId };
+  // If game was in progress and not enough players remain, end the game
+  if (wasInGame && room.players.size < MIN_PLAYERS) {
+    room.gameState.phase = 'lobby';
+    room.gameState.round = 1;
+    room.gameState.currentRound = null;
+    room.gameState.usedThemeIds = new Set();
+    room.gameState.scores = new Map();
+
+    // Reset all players' ready status
+    for (const [, p] of room.players) {
+      p.isReady = false;
+    }
+
+    gameEnded = true;
+  }
+
+  return { room, wasHost, newHostId, gameEnded };
 }
 
 export function getRoom(code: string): Room | undefined {

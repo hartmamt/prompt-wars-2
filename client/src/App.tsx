@@ -113,6 +113,11 @@ interface GameResetEvent {
   room: RoomState;
 }
 
+interface GameEndedEvent {
+  reason: string;
+  room: RoomState;
+}
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
@@ -288,6 +293,16 @@ function App() {
       setLeaderboard([]);
     };
 
+    const onGameEnded = (data: GameEndedEvent) => {
+      setRoom(data.room);
+      setGameState(null);
+      setPhase('lobby');
+      setHasSubmittedPrompt(false);
+      setRoundWinner(null);
+      setLeaderboard([]);
+      setError(data.reason);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('player-joined', onPlayerJoined);
@@ -306,6 +321,7 @@ function App() {
     socket.on('round-results', onRoundResults);
     socket.on('final-results', onFinalResults);
     socket.on('game-reset', onGameReset);
+    socket.on('game-ended', onGameEnded);
 
     // Check if already connected
     if (socket.connected) {
@@ -331,6 +347,7 @@ function App() {
       socket.off('round-results', onRoundResults);
       socket.off('final-results', onFinalResults);
       socket.off('game-reset', onGameReset);
+      socket.off('game-ended', onGameEnded);
     };
   }, [currentPlayerId]);
 

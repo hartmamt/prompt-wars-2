@@ -398,7 +398,7 @@ function handleLeaveRoom(io: SocketIOServer, socket: Socket): void {
 
   if (!result) return;
 
-  const { room, wasHost, newHostId } = result;
+  const { room, wasHost, newHostId, gameEnded } = result;
 
   // Notify remaining players
   if (room.players.size > 0) {
@@ -408,6 +408,14 @@ function handleLeaveRoom(io: SocketIOServer, socket: Socket): void {
       newHostId,
       room: roomToResponse(room),
     });
+
+    // If the game ended due to disconnect, notify players
+    if (gameEnded) {
+      io.to(room.code).emit('game-ended', {
+        reason: 'Not enough players to continue',
+        room: roomToResponse(room),
+      });
+    }
   }
 }
 
