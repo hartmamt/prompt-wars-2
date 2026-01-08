@@ -1,4 +1,4 @@
-import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND, Sabotage, SabotageType } from './types.js';
+import { Room, Player, MIN_PLAYERS, MAX_PLAYERS, GamePhase, CategorySelection, ModelProvider, PROMPTING_DURATION_MS, PROMPT_MAX_LENGTH, RoundState, GeneratedImage, Matchup, Vote, VOTING_DURATION_MS, POINTS_WIN_MATCHUP, POINTS_FASTEST_VOTER, INITIAL_TOKENS, TOKENS_WIN_MATCHUP, TOKENS_MAJORITY_VOTE, TOKENS_WIN_ROUND, Sabotage, SabotageType, ChaosAward } from './types.js';
 import { getRandomTheme } from './themes.js';
 import { getRandomModifier, applyModifier } from './modifiers.js';
 import { SABOTAGE_COSTS, MAX_SABOTAGES_PER_PLAYER_PER_GAME, createSabotageEffect, applySabotageToPrompt } from './sabotage.js';
@@ -1242,4 +1242,117 @@ export function resetGame(socketId: string): ResetGameResult {
   }
 
   return { success: true, room };
+}
+
+/**
+ * Calculate chaos awards based on game history.
+ * Awards:
+ * - Agent of Chaos: most sabotages used
+ * - Survivor: won despite being sabotaged
+ * - Karma: sabotaged someone who beat them
+ * - Backfire: sabotage helped victim win
+ */
+export function calculateChaosAwards(room: Room): ChaosAward[] {
+  const awards: ChaosAward[] = [];
+
+  // Count sabotages per player
+  const sabotagesUsed = new Map<string, number>();
+  const sabotagesReceived = new Map<string, number>();
+
+  for (const history of room.gameState.sabotageHistory) {
+    const attackerCount = sabotagesUsed.get(history.attackerId) ?? 0;
+    sabotagesUsed.set(history.attackerId, attackerCount + 1);
+
+    const victimCount = sabotagesReceived.get(history.victimId) ?? 0;
+    sabotagesReceived.set(history.victimId, victimCount + 1);
+  }
+
+  // Get leaderboard for determining winners
+  const leaderboard = getLeaderboard(room);
+  const winner = leaderboard[0];
+
+  // Agent of Chaos: most sabotages used
+  let maxSabotages = 0;
+  let agentOfChaosId: string | null = null;
+  for (const [playerId, count] of sabotagesUsed.entries()) {
+    if (count > maxSabotages) {
+      maxSabotages = count;
+      agentOfChaosId = playerId;
+    }
+  }
+  if (agentOfChaosId && maxSabotages > 0) {
+    awards.push({
+      type: 'agent_of_chaos',
+      title: 'AGENT OF CHAOS',
+      description: `Used ${maxSabotages} sabotage${maxSabotages > 1 ? 's' : ''}`,
+      playerId: agentOfChaosId,
+      playerName: getPlayerName(room, agentOfChaosId),
+      playerAvatar: getPlayerAvatar(room, agentOfChaosId),
+      emoji: '💀',
+    });
+  }
+
+  // Survivor: won despite being sabotaged
+  if (winner) {
+    const winnerSabotaged = sabotagesReceived.get(winner.playerId) ?? 0;
+    if (winnerSabotaged > 0) {
+      awards.push({
+        type: 'survivor',
+        title: 'SURVIVOR',
+        description: `Won despite ${winnerSabotaged} sabotage${winnerSabotaged > 1 ? 's' : ''}`,
+        playerId: winner.playerId,
+        playerName: winner.playerName,
+        playerAvatar: winner.playerAvatar,
+        emoji: '🛡️',
+      });
+    }
+  }
+
+  // Karma: sabotaged someone who beat them
+  // Find players who sabotaged someone ranked higher than them
+  for (const history of room.gameState.sabotageHistory) {
+    const attackerEntry = leaderboard.find(e => e.playerId === history.attackerId);
+    const victimEntry = leaderboard.find(e => e.playerId === history.victimId);
+
+    if (attackerEntry && victimEntry && victimEntry.rank < attackerEntry.rank) {
+      // Victim beat the attacker - karma!
+      // Only add this award once per attacker
+      const existingKarma = awards.find(a => a.type === 'karma' && a.playerId === history.attackerId);
+      if (!existingKarma) {
+        awards.push({
+          type: 'karma',
+          title: 'KARMA',
+          description: `Sabotaged ${getPlayerName(room, history.victimId)} who beat them`,
+          playerId: history.attackerId,
+          playerName: getPlayerName(room, history.attackerId),
+          playerAvatar: getPlayerAvatar(room, history.attackerId),
+          emoji: '🔄',
+        });
+      }
+    }
+  }
+
+  // Backfire: sabotage helped victim win
+  // If victim is the overall winner, that's a backfire
+  if (winner) {
+    for (const history of room.gameState.sabotageHistory) {
+      if (history.victimId === winner.playerId) {
+        // Only add this award once per attacker
+        const existingBackfire = awards.find(a => a.type === 'backfire' && a.playerId === history.attackerId);
+        if (!existingBackfire) {
+          awards.push({
+            type: 'backfire',
+            title: 'BACKFIRE',
+            description: `Sabotage on ${winner.playerName} backfired - they won!`,
+            playerId: history.attackerId,
+            playerName: getPlayerName(room, history.attackerId),
+            playerAvatar: getPlayerAvatar(room, history.attackerId),
+            emoji: '💥',
+          });
+        }
+      }
+    }
+  }
+
+  return awards;
 }

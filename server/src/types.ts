@@ -139,3 +139,16 @@ export const PROMPT_MAX_LENGTH = 200;
 
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 8;
+
+// Chaos Awards
+export type ChaosAwardType = 'agent_of_chaos' | 'survivor' | 'karma' | 'backfire';
+
+export interface ChaosAward {
+  type: ChaosAwardType;
+  title: string;
+  description: string;
+  playerId: string;
+  playerName: string;
+  playerAvatar: string | null;
+  emoji: string;
+}

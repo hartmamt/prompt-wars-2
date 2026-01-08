@@ -899,3 +899,57 @@
 - ✅ Token earn/spend animations (token-float-earn/spend with floating effect)
 - ✅ Protected badge after 2 sabotages (protected badge notification with shield)
 
+
+## US-032: Chaos End-Game Stats
+**Status:** PASSED
+**Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+### Changes Made:
+1. **Server Types (types.ts)**:
+   - Added `ChaosAwardType` type for award types
+   - Added `ChaosAward` interface with type, title, description, playerId, playerName, playerAvatar, emoji
+
+2. **Server roomManager.ts**:
+   - Added `calculateChaosAwards(room)` function that calculates:
+     - **Agent of Chaos**: player who used the most sabotages
+     - **Survivor**: winner who was sabotaged at least once
+     - **Karma**: player who sabotaged someone who beat them
+     - **Backfire**: player whose sabotage on the winner backfired
+   - Awards include emoji, title, description, and player info
+
+3. **Server socketHandlers.ts**:
+   - Updated final-results event to include `chaosAwards` from calculateChaosAwards()
+
+4. **Client Types (types.ts)**:
+   - Added matching `ChaosAwardType` and `ChaosAward` interfaces
+
+5. **Client App.tsx**:
+   - Added `chaosAwards` state
+   - Updated `FinalResultsEvent` interface to include optional chaosAwards
+   - Updated `onFinalResults` handler to set chaosAwards state
+   - Clear chaosAwards on game reset and game ended
+   - Pass chaosAwards to FinalResults component
+
+6. **FinalResults Component**:
+   - Added `chaosAwards` prop (optional, defaults to empty array)
+   - Added `visibleAwards` state for staggered reveal animation
+   - Added useEffect for staggered reveal (500ms start, 400ms between each)
+   - Added Chaos Awards section with:
+     - Header with skull emoji styling
+     - Grid layout (2 columns on desktop)
+     - Each award shows:
+       - Emoji (4xl/5xl size)
+       - Award title (uppercase, red color)
+       - Player avatar and name
+       - Description text
+     - Animation: translate, scale, opacity transition on reveal
+     - Purple ring highlight if current player won the award
+
+### Acceptance Criteria Met:
+- ✅ Agent of Chaos: most sabotages used
+- ✅ Survivor: won despite being sabotaged
+- ✅ Karma: sabotaged someone who beat them
+- ✅ Backfire: sabotage helped victim win
+- ✅ Awards displayed with animations (staggered reveal)
+- ✅ Award recipient avatar shown
+

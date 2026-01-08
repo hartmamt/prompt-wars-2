@@ -496,7 +496,7 @@
         "Award recipient avatar shown"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "Chaos-related achievements"
     },
     {

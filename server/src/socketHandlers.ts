@@ -31,6 +31,7 @@ import {
   transitionToResults,
   startNextRound,
   resetGame,
+  calculateChaosAwards,
 } from './roomManager.js';
 import { generateImage } from './flux.js';
 import type { Player, Room, CategorySelection, ModelProvider, GamePhase } from './types.js';
@@ -451,10 +452,12 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       }
 
       if (result.isFinal) {
-        // Final results
+        // Final results - calculate chaos awards
+        const chaosAwards = calculateChaosAwards(result.room);
         io.to(room.code).emit('final-results', {
           gameState: gameStateToResponse(result.room),
           leaderboard: getLeaderboard(result.room),
+          chaosAwards,
         });
       } else {
         // Next round started

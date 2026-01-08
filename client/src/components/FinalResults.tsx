@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import type { LeaderboardEntry } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import type { LeaderboardEntry, ChaosAward } from '../types';
 import { playClick, playHover, playNavigate, playFinalVictory, playRoundLose } from '../sounds';
 
 interface FinalResultsProps {
@@ -8,6 +8,7 @@ interface FinalResultsProps {
   onPlayAgain: () => void;
   onReturnHome: () => void;
   isHost: boolean;
+  chaosAwards?: ChaosAward[];
 }
 
 // Affectionate titles for different ranks
@@ -32,10 +33,12 @@ export function FinalResults({
   onPlayAgain,
   onReturnHome,
   isHost,
+  chaosAwards = [],
 }: FinalResultsProps) {
   const winner = leaderboard[0];
   const others = leaderboard.slice(1);
   const hasPlayedSound = useRef(false);
+  const [visibleAwards, setVisibleAwards] = useState<number[]>([]);
 
   // Play victory/lose sound on mount
   useEffect(() => {
@@ -48,6 +51,23 @@ export function FinalResults({
       playRoundLose();
     }
   }, [winner, currentPlayerId]);
+
+  // Staggered reveal of chaos awards
+  useEffect(() => {
+    if (chaosAwards.length === 0) return;
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    chaosAwards.forEach((_, index) => {
+      const timer = setTimeout(() => {
+        setVisibleAwards(prev => [...prev, index]);
+      }, 500 + index * 400); // Start at 500ms, 400ms between each
+      timers.push(timer);
+    });
+
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, [chaosAwards]);
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-prompt-black p-4 md:p-8">
@@ -169,6 +189,58 @@ export function FinalResults({
           ))}
         </div>
       </div>
+
+      {/* Chaos Awards */}
+      {chaosAwards.length > 0 && (
+        <div className="mb-8 w-full max-w-md md:mb-12 md:max-w-4xl">
+          <div className="mb-3 text-center text-xs font-bold uppercase tracking-widest text-red-500 md:mb-4 md:text-sm">
+            💀 CHAOS AWARDS 💀
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+            {chaosAwards.map((award, index) => (
+              <div
+                key={`${award.type}-${award.playerId}`}
+                className={`transform rounded-lg border-2 border-red-700 bg-gradient-to-br from-red-900/30 to-gray-900 p-4 transition-all duration-500 md:p-5 ${
+                  visibleAwards.includes(index)
+                    ? 'translate-y-0 opacity-100 scale-100'
+                    : 'translate-y-4 opacity-0 scale-95'
+                } ${award.playerId === currentPlayerId ? 'ring-2 ring-prompt-purple' : ''}`}
+              >
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="text-4xl md:text-5xl">{award.emoji}</div>
+                  <div className="flex-1">
+                    <div className="mb-1 text-sm font-bold uppercase tracking-wide text-red-400 md:text-base">
+                      {award.title}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {award.playerAvatar ? (
+                        <img
+                          src={award.playerAvatar}
+                          alt=""
+                          className="h-6 w-6 rounded-full object-cover md:h-8 md:w-8"
+                        />
+                      ) : (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-700 text-xs font-bold md:h-8 md:w-8">
+                          {award.playerName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="font-semibold text-white md:text-lg">
+                        {award.playerName}
+                        {award.playerId === currentPlayerId && (
+                          <span className="ml-2 text-xs text-prompt-purple">(YOU)</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-400 md:text-sm">
+                      {award.description}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="flex w-full max-w-md flex-col gap-3 md:max-w-lg">

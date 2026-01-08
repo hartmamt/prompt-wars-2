@@ -10,7 +10,7 @@ import { Results } from './components/Results';
 import { FinalResults } from './components/FinalResults';
 import { audioEngine } from './audioEngine';
 import { playPhaseTransition } from './sounds';
-import type { RoomState, GamePhase, Player, CategorySelection, ModelProvider, GameState, MatchupData, LeaderboardEntry, ScoreChange } from './types';
+import type { RoomState, GamePhase, Player, CategorySelection, ModelProvider, GameState, MatchupData, LeaderboardEntry, ScoreChange, ChaosAward } from './types';
 
 interface RoomResponse {
   success: boolean;
@@ -113,6 +113,7 @@ interface RoundResultsEvent {
 interface FinalResultsEvent {
   gameState: GameState;
   leaderboard: LeaderboardEntry[];
+  chaosAwards?: ChaosAward[];
 }
 
 interface GameResetEvent {
@@ -140,6 +141,7 @@ function App() {
   const [votersWhoVoted, setVotersWhoVoted] = useState<string[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [chaosAwards, setChaosAwards] = useState<ChaosAward[]>([]);
   const [recentScoreChanges, setRecentScoreChanges] = useState<ScoreChange[]>([]);
   const [roundWinner, setRoundWinner] = useState<RoundWinner | null>(null);
   const [resultsTheme, setResultsTheme] = useState('');
@@ -296,6 +298,7 @@ function App() {
     const onFinalResults = (data: FinalResultsEvent) => {
       setGameState(data.gameState);
       setLeaderboard(data.leaderboard);
+      setChaosAwards(data.chaosAwards ?? []);
       setPhase('final');
     };
 
@@ -306,6 +309,7 @@ function App() {
       setHasSubmittedPrompt(false);
       setRoundWinner(null);
       setLeaderboard([]);
+      setChaosAwards([]);
     };
 
     const onGameEnded = (data: GameEndedEvent) => {
@@ -315,6 +319,7 @@ function App() {
       setHasSubmittedPrompt(false);
       setRoundWinner(null);
       setLeaderboard([]);
+      setChaosAwards([]);
       setError(data.reason);
     };
 
@@ -666,6 +671,7 @@ function App() {
           onPlayAgain={handlePlayAgain}
           onReturnHome={handleReturnHome}
           isHost={isHost}
+          chaosAwards={chaosAwards}
         />
         <MuteButton />
       </div>

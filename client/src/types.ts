@@ -98,3 +98,16 @@ export interface GameState {
   chaosMode: boolean;
   currentRound: CurrentRoundState | null;
 }
+
+// Chaos Awards
+export type ChaosAwardType = 'agent_of_chaos' | 'survivor' | 'karma' | 'backfire';
+
+export interface ChaosAward {
+  type: ChaosAwardType;
+  title: string;
+  description: string;
+  playerId: string;
+  playerName: string;
+  playerAvatar: string | null;
+  emoji: string;
+}
